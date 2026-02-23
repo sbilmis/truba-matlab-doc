@@ -1,0 +1,1870 @@
+#+title: Parallel Computing with MATLAB on TRUBA HPC
+#+author: sbilmis
+#+language: en
+#+options: toc:t num:t ^:nil
+#+startup: content
+
+
+* Overview
+
+This document describes the configuration and usage of MATLAB on the TRUBA
+High-Performance Computing (HPC) infrastructure, including license usage,
+interactive execution, and batch job submission via Slurm.
+
+This guide is intended for academic users of TRUBA.
+
+
+* Tested Environment
+
+This documentation was validated under the following environment:
+
+| Component           | Version / Value              |
+|--------------------|------------------------------|
+| Cluster            | TRUBA (arf and cuda)         |
+| Partitions Tested  | debug                        |
+| MATLAB             | R2025b                       |
+| License Model      | Network Academic (MathWorks) |
+| Slurm              | 23.02.5-1                    |
+| OS                 | Rocky Linux 9                |
+| Test Date          | 2026-02-18                   |
+
+
+This guide reflects the configuration of TRUBA as of the test date above.
+Changes in MATLAB versions, Slurm configuration, or license settings may
+require adjustments.
+
+
+* Prerequisites
+
+- Active TRUBA account
+- OpenVPN needs to be active
+- Execution from non-academic MATLAB licenses is not permitted on TRUBA compute resources.
+
+  #+BEGIN_QUOTE
+**Important:** Only academic MATLAB licenses may be used
+to execute jobs on TRUBA.
+#+END_QUOTE
+
+
+
+
+* Licensing and Policy (Academic Use Only)
+
+TRUBA provides MATLAB under a sponsored *Network Academic* license.
+
+#+BEGIN_QUOTE
+*Important:* Only *academic* MATLAB usage is permitted on TRUBA compute resources.
+Remote submission from a local computer is allowed only if the MATLAB installation
+on the local computer is also covered by an academic license.
+#+END_QUOTE
+
+** What this means in practice
+
+- If you use *Open OnDemand* and run MATLAB directly on TRUBA, licensing is handled on the cluster side.
+- If you submit jobs from MATLAB on your personal computer using the TRUBA cluster profile/plugin,
+  your local MATLAB installation must also be an *academic* license. Otherwise remote execution may be blocked.
+
+If you are unsure about your local license type, contact your institution’s MATLAB license administrator.
+
+
+* Running MATLAB in Open OnDemand (ARF Cluster)
+
+This section describes how to start MATLAB using a graphical interface
+on the ARF cluster via Open OnDemand.
+
+GUI-based MATLAB sessions must be launched through Open OnDemand.
+Running graphical MATLAB sessions directly on login nodes is prohibited.
+
+** Accessing the ARF Cluster via Open OnDemand
+
+1. Open your web browser.
+2. Navigate to:
+
+   https://172.16.6.20
+
+3. Log in using your TRUBA credentials.
+4. Start a *Desktop Session* from the dashboard.
+
+For detailed connection instructions on OpenOnDemand usage on TRUBA, refer to:
+https://docs.truba.gov.tr
+
+#+caption: Open OnDemand dashboard for ARF cluster
+[[file:images/arf_ood_dashboard.png]]
+
+
+** Starting MATLAB in the Desktop Session
+
+Once the Desktop session is active:
+
+1. Open a terminal window. (right click -> Open Terminal Here)
+2. Load the MATLAB module:
+
+#+begin_src bash
+module purge
+module available | grep -i matlab # to see the available modules installed (we generally keep the latest 4 version of the MATLAB on the cluster
+module load apps/matlab/r2025b
+#+end_src
+
+3. Start MATLAB without the splash screen:
+
+#+begin_src bash
+matlab -nosplash
+#+end_src
+
+The =-nosplash= option removes the startup splash screen.
+For command-line-only sessions, you may use:
+
+#+begin_src bash
+matlab -nodesktop -nosplash
+#+end_src
+
+** Discovering the Local Compute Environment
+
+After MATLAB starts:
+
+1. Go to the *Home* tab.
+2. Select:
+   Parallel → Discover Clusters…
+
+MATLAB will detect the compute node allocated to your Desktop session
+(for example, =orfoz34=).
+
+#+caption: Discover Clusters window showing allocated compute node
+[[file:images/matlab_discover_clusters.png]]
+
+*** Important Clarification
+
+In the TRUBA environment, the “Discover Clusters” feature detects
+the current compute node associated with your Open OnDemand session.
+
+It does *not* automatically configure Slurm cluster integration.
+
+The detected entry represents the local execution environment
+of your allocated compute node.
+
+** Configuration Scope
+
+This configuration step only needs to be performed once per user environment.
+
+Both ARF and CUDA clusters:
+
+- Share the same home directory (= /arf/home/$USER =)
+- Share the same scratch directory
+- Use the same MATLAB installation
+- Use the same license configuration
+
+MATLAB preferences are stored under:
+
+=~/.matlab/=
+
+Since the home directory is shared between clusters,
+this configuration does not need to be repeated
+when switching between ARF and CUDA.
+
+** CUDA Cluster Access (Restricted)
+
+The CUDA cluster is accessed through a separate Open OnDemand interface:
+
+https://172.16.6.16
+
+Access to the CUDA cluster requires authorization.
+See the official documentation:
+
+https://docs.truba.gov.tr/1-kaynaklar/arf_acc/arf_acc_baglanti.html#arf-acc-baglanti
+
+Users with CUDA privileges may start MATLAB in the same manner described above. No additional MATLAB configuration is required because it is local session.
+
+** Important Note on Cluster Validation in GUI
+
+In the MATLAB graphical interface, users may open:
+
+Home → Parallel → Cluster Profile Manager
+
+and attempt to use the *Validate* button for the detected cluster.
+
+In the TRUBA environment, this validation test may fail or may not
+behave as expected. This is because TRUBA does not use MATLAB’s
+built-in cluster submission mechanism for job scheduling.
+
+Instead, job execution is handled by the Slurm workload manager.
+
+Therefore:
+
+The detected cluster entry represents the local compute node
+allocated to the Open OnDemand session and does not imply
+full MATLAB Parallel Server integration.
+
+- The "Validate" button should not be used to test TRUBA integration.
+- Successful execution of MATLAB jobs on TRUBA should be verified
+  through Slurm batch submission (see next section).
+
+
+
+
+
+
+
+
+
+
+
+
+
+* Initial Configuration – Submitting Jobs from Local MATLAB to TRUBA
+
+This section describes how to configure MATLAB installed on your local
+computer to submit jobs remotely to the TRUBA cluster.
+
+This configuration:
+
+- Is required only if MATLAB is installed on your personal machine.
+- Must be performed once per Slurm cluster (e.g., ARF or CUDA). 
+- Must be repeated for each MATLAB version installed locally.
+
+** Verify MATLAB User Path
+
+Start MATLAB on your local machine and run:
+
+#+begin_src matlab
+userpath
+#+end_src
+
+If the command returns a valid directory, that location will be used
+to store the TRUBA cluster plugin scripts.
+
+If the result is empty (e.g., =0x0 empty char array=),
+reset the user path:
+
+#+begin_src matlab
+userpath('reset')
+userpath
+#+end_src
+
+
+#+caption: MATLAB userpath after reset
+[[file:images/local_userpath_output.png]]
+
+If necessary, manually create a MATLAB directory under your
+Documents folder and set it as the user path:
+
+#+begin_src matlab
+mkdir(fullfile(getenv('HOME'),'Documents','MATLAB'))
+userpath(fullfile(getenv('HOME'),'Documents','MATLAB'))
+savepath
+#+end_src
+
+
+** Install the TRUBA Cluster Plugin
+
+
+Download the TRUBA MATLAB plugin package (ZIP file) provided by TRUBA
+or MathWorks.
+
+Extract the contents of the ZIP file into the directory returned by:
+
+#+begin_src matlab
+userpath
+#+end_src
+
+Ensure that the plugin files are directly accessible within this directory.
+
+
+** Create a New Cluster Profile
+
+In MATLAB, run:
+
+#+begin_src matlab
+configCluster
+#+end_src
+
+This will create a TRUBA cluster profile configured for Slurm submission.
+
+#+caption:  Running configCluster and selecting TRUBA ARF
+[[file:images/configCluster_execution.png]]
+
+
+During configuration, you will be prompted to select the cluster
+and provide your TRUBA username.
+The username will be stored in the MATLAB cluster profile configuration.
+
+No password is requested at this stage.
+
+Authentication (password or SSH key) will be handled during job submission
+
+
+After successful configuration, jobs submitted from MATLAB
+will run on the TRUBA cluster instead of the local machine.
+
+You can also see  the cluster profile from GUI Home -> Parallel -> Create and Manage Clusters  
+#+caption:  TRUBA ARF cluster profile visible in Cluster Profile Manager
+[[file:images/cluster_profile_manager.png]]
+
+
+** Important: Local Execution Profile
+
+To run jobs locally instead of on TRUBA, use the Processes profile:
+
+#+begin_src matlab
+c = parcluster('Processes');
+#+end_src
+
+
+** Configuring Scheduler Parameters (Slurm Options)
+
+Before submitting jobs from MATLAB to TRUBA, users are strongly advised to have
+basic familiarity with Slurm concepts such as partitions, wall time, CPUs, and
+memory.
+
+- Slurm job script fundamentals:
+  https://docs.truba.gov.tr/2-temel_bilgiler/slurm-betik-ozellik.html
+
+- Overview of TRUBA computing clusters / partitions:
+  https://docs.truba.gov.tr/2-temel_bilgiler/hesaplama_kumeleri.html
+
+NOTE: Documentation pages may not always reflect the most up-to-date partition
+configuration. You can query the available partitions directly from MATLAB using
+the TRUBA cluster profile.
+
+*** Listing Available Partitions from MATLAB
+
+#+begin_src matlab
+c = parcluster;
+clusterPartitionNames(c)
+#+end_src
+
+Example output:
+
+#+begin_example
+{'akya-cuda' }
+{'barbun' }
+{'barbun-cuda'}
+{'debug' }
+{'hamsi' }
+{'orfoz' }
+{'smp' }
+#+end_example
+
+
+*** Slurm Options Exposed by the TRUBA MATLAB Profile
+
+The TRUBA MATLAB cluster profile exposes Slurm-related options via:
+
+#+begin_src matlab
+c = parcluster;
+c.AdditionalProperties
+#+end_src
+
+In this documentation we focus on the minimal set required for a successful test
+submission. (Other fields are advanced or site-specific.)
+
+*** What You Typically Need to Specify
+
+When submitting jobs to TRUBA, you should generally define at least:
+
+1. *Partition* (=c.AdditionalProperties.Partition=)
+   - For initial testing, we recommend using =debug=.
+
+2. *Requested compute size* (MATLAB workers)
+   - When submitting jobs from MATLAB, the size of the job is typically controlled
+     by the *pool size* (see the minimal test job below).
+   - Some partitions enforce policies on job size. For example, on =orfoz= you may
+     be required to request 56×n cores.
+
+3. *Wall time* (=c.AdditionalProperties.WallTime=)
+   - This is required.
+   - Keep it short for tests (e.g., 5–10 minutes).
+   - Maximum wall time depends on partition/site policy.
+
+*** Minimal Working Test (Recommended)
+
+This minimal test submits a simple job that returns the working directory (=pwd=).
+It is designed to be small, predictable, and suitable for first-time validation.
+
+We explicitly set:
+
+- =Partition= to =debug= (small jobs are accepted)
+- =NumNodes= to =1= (avoid accidental multi-node allocation for a tiny test)
+- =WallTime= to a short value
+
+#+begin_src matlab
+c = parcluster;
+
+% Recommended baseline for a first test
+c.AdditionalProperties.Partition = 'debug';
+c.AdditionalProperties.NumNodes  = 1;
+c.AdditionalProperties.WallTime  = '0-00:10';
+
+% Submit a pool job (Pool>=2) and disable client-path propagation
+j = batch(c, @pwd, 1, {}, ...
+    'Pool', 2, ...
+    'CurrentFolder', '.', ...
+    'AutoAddClientPath', false);
+#+end_src
+
+*** Understanding the =batch= Command
+
+The following command submits a job to the TRUBA cluster:
+
+#+begin_src matlab
+j = batch(c, @pwd, 1, {}, ...
+    'Pool', 2, ...
+    'CurrentFolder', '.', ...
+    'AutoAddClientPath', false);
+#+end_src
+
+Explanation of the arguments:
+
+- =c=  
+  The TRUBA cluster profile created earlier.
+
+- =@pwd=  
+  The function to execute on the cluster.  
+  In this minimal test, =pwd= simply returns the working directory.
+
+- =1=  
+  Number of output arguments expected from the function.
+
+- ={}=  
+  Cell array of input arguments to the function (empty in this example).
+
+- ='Pool', 2=  
+  Starts 2 MATLAB workers on the cluster.  
+  On TRUBA ARF, independent single-core jobs are not supported, so
+  a pool size of at least 2 is required for this test.
+
+- ='CurrentFolder', '.'=  
+  Specifies the working directory from which the job is submitted.
+
+- ='AutoAddClientPath', false=  
+  Prevents MATLAB from attempting to add local (e.g., macOS/Windows)
+  directories to the cluster workers' search path.
+  This avoids unnecessary warnings.
+
+  For convenience, the same command can be written in a single line:
+
+Internally, the pool size determines how many parallel worker processes
+are launched on the cluster.
+
+
+#+begin_src matlab
+j = batch(c,@pwd,1,{},'Pool',2,'CurrentFolder','.', 'AutoAddClientPath',false);
+#+end_src
+
+
+NOTE:
+- On TRUBA ARF, submitting an independent single-core job without a pool may fail
+  with: "Single core jobs are not supported". For this reason, we use =Pool= in the
+  minimal test.
+
+
+*** Monitoring the Job
+
+After submitting the job, you can monitor its status both from MATLAB
+and from the TRUBA command line.
+
+**** From MATLAB
+
+Check the job state:
+
+#+begin_src matlab
+j.State
+#+end_src
+
+Possible states include:
+
+- 'queued'
+- 'running'
+- 'finished'
+- 'failed'
+
+You can also inspect timing information:
+
+#+begin_src matlab
+j.SubmitTime
+j.StartTime
+j.FinishTime
+#+end_src
+
+**** From the TRUBA Login Node (Slurm)
+
+If you know the Slurm job ID (visible in submission output),
+you can check:
+
+#+begin_src bash
+squeue -u $USER
+#+end_src
+
+After completion:
+
+#+begin_src bash
+sacct -j <jobid> --format=JobID,State,Elapsed,AllocCPUS,NodeList
+#+end_src
+
+*** Fetching and Inspecting Job Results
+
+Once the job state becomes ='finished'=, you can retrieve outputs and inspect logs.
+
+**** Fetch outputs
+
+#+begin_src matlab
+out = fetchOutputs(j);
+out{1}
+#+end_src
+
+NOTE:
+Outputs are returned as a cell array even if there is a single output.
+
+**** If the job failed
+
+If =j.State= is ='failed'=, inspect the task error message:
+
+#+begin_src matlab
+j.Tasks(1).Error
+#+end_src
+
+To view command-window output captured during execution:
+
+#+begin_src matlab
+diary(j)
+#+end_src
+
+(Depending on job settings/plugin behavior, task diary may also be available via
+=j.Tasks(1).Diary=.)
+
+**** Working with multiple test jobs
+
+If you submit multiple jobs and no longer have the variable =j=,
+you can list jobs associated with the cluster profile:
+
+#+begin_src matlab
+c = parcluster;
+c.Jobs
+#+end_src
+
+To select the most recent job:
+
+#+begin_src matlab
+j = c.Jobs(end);
+#+end_src
+
+Then fetch outputs as usual:
+
+#+begin_src matlab
+out = fetchOutputs(j);
+out{1}
+#+end_src
+
+**** Optional cleanup
+
+To remove a completed job object and associated local metadata:
+
+#+begin_src matlab
+delete(j)
+#+end_src
+**** Deleting All Jobs from the Profile
+
+To remove all stored job objects:
+
+#+begin_src matlab
+c = parcluster;
+delete(c.Jobs)
+#+end_src
+
+This clears local job metadata stored in the cluster profile's
+job storage directory.
+
+
+
+
+
+
+
+
+
+
+
+*** Viewing Current Settings
+
+To view the current configuration used by the profile:
+
+#+begin_src matlab
+c.AdditionalProperties
+#+end_src
+
+*** Saving Settings (Optional)
+
+If you want MATLAB to reuse your current configuration in future sessions,
+save the cluster profile:
+
+#+begin_src matlab
+c.saveProfile
+#+end_src
+
+If you do not save the profile, changes are typically not persistent between
+MATLAB sessions. If you have not saved the profile and want to revert all changes,
+simply restart MATLAB.
+
+
+*** Modifying or Unsetting Settings
+
+You can change a value by assigning a new one, for example:
+
+#+begin_src matlab
+c.AdditionalProperties.WallTime = '0-00:30';
+#+end_src
+
+To unset values (return to plugin defaults), use empty/zero/false values, e.g.:
+
+#+begin_src matlab
+c.AdditionalProperties.Partition = '';
+c.AdditionalProperties.NumNodes  = 0;
+c.AdditionalProperties.MemPerCPU = '';
+c.AdditionalProperties.RequireExclusiveNode = false;
+#+end_src
+
+
+
+
+
+
+*** How MATLAB Jobs Use TRUBA Resources
+
+In this section we examine how MATLAB job settings translate into
+actual resource requests on TRUBA.
+
+We start with a concrete example.
+
+**** Example: Submitting a Small Pool Job
+
+#+begin_src matlab
+c = parcluster;
+
+c.AdditionalProperties.Partition = 'debug';
+c.AdditionalProperties.NumNodes  = 1;
+c.AdditionalProperties.WallTime  = '0-00:10';
+
+j = batch(c,@pwd,1,{}, ...
+    'Pool',2, ...
+    'CurrentFolder','.', ...
+    'AutoAddClientPath',false);
+#+end_src
+
+When this job is submitted, MATLAB generates a Slurm submission script.
+You can see the actual Slurm flags in the submission output.
+
+Typical submission arguments may look like:
+
+#+begin_example
+--ntasks=3
+--cpus-per-task=1
+-N 1
+-p debug
+-t 0-00:10
+#+end_example
+
+**** What Do These Flags Mean?
+
+1. =Pool = 2=
+
+   MATLAB starts:
+   - 1 main MATLAB process (the client)
+   - 2 worker processes
+
+   Therefore:
+
+   - Total Slurm tasks = 3
+   - This corresponds to: =--ntasks=3=
+
+2. =NumNodes = 1=
+
+   This maps to:
+
+   - =-N 1=
+
+   The job is restricted to a single compute node.
+
+3. =Partition = 'debug'=
+
+   This maps to:
+
+   - =-p debug=
+
+   The job is submitted to the debug partition.
+
+4. =WallTime = '0-00:10'=
+
+   This maps to:
+
+   - =-t 0-00:10=
+
+   Maximum runtime allowed for the job.
+
+**** Important Notes
+
+- On TRUBA ARF, independent single-core jobs are not supported.
+  An independent job without a pool would generate:
+
+  =--ntasks=1=
+
+  which violates site policy.
+
+- The total number of allocated CPUs is determined by
+  the number of Slurm tasks.
+
+- For pool jobs, the number of Slurm tasks is typically:
+
+  1 (client) + Pool size
+
+
+
+**** Partition Policies on TRUBA
+
+TRUBA enforces additional partition-specific job size policies at submission time.
+These policies are checked automatically by the scheduler. If a job does not comply,
+Slurm rejects it with an explanatory message.
+
+The key idea is that policies are applied *per node*:
+
+- Per-node CPU request = (Total requested CPUs) / (NumNodes)
+
+***** Summary of node sizes (informative)
+
+From =scontrol show partition= output, the typical CPU core count per node is:
+
+- =orfoz=: 112 CPU cores per node
+- =hamsi=: 56 CPU cores per node
+- =barbun=: 40 CPU cores per node
+- =akya-cuda=: 40 CPU cores per node
+- =barbun-cuda=: 40 CPU cores per node
+
+***** CPU partitions: per-node CPU count rules
+
+- =orfoz=
+  - Requests must be *56×n* CPU cores per node (commonly 56 or 112).
+  - If violated, Slurm may reject the job with a message such as:
+    "Orfoz kuyruguna gonderilen islerde node basina 56/112 cekirdek talep ediniz."
+
+- =hamsi=
+  - Requests must be *56×n* CPU cores per node.
+
+- =barbun=
+  - Requests must be *40×n* CPU cores per node.
+
+Practical recommendation:
+- Use =debug= for small test jobs.
+- Use the target partition for production jobs and request per-node CPU cores
+  in the allowed multiples.
+
+***** GPU partitions: GPU request and CPU↔GPU ratio rules
+
+- =akya-cuda=
+  - A GPU request is mandatory.
+  - CPU cores must be requested in multiples of 10.
+  - Policy requires 1 GPU per 10 CPU cores per node.
+
+- =barbun-cuda=
+  - A GPU request is mandatory.
+  - CPU cores must be requested in multiples of 20.
+  - Policy requires 1 GPU per 20 CPU cores per node.
+
+NOTE:
+The exact GPU request syntax depends on the submission method.
+When submitting through the TRUBA MATLAB plugin, GPU requests are set via
+the cluster profile options (see the GPU example section later in this document).
+
+***** Working directory policy
+
+TRUBA requires jobs to run from =/arf/scratch= (recommended).
+Jobs submitted from other directories may be rejected by site policy.
+
+For MATLAB submissions, we recommend using:
+
+#+begin_src matlab
+'CurrentFolder','.'
+#+end_src
+
+when MATLAB is started in a directory under =/arf/scratch=.
+
+
+*** What You Typically Need to Specify
+
+When submitting jobs to TRUBA from MATLAB, you should generally define at least:
+
+1. *Partition* (=c.AdditionalProperties.Partition=)
+   - Determines which node type your job will run on.
+   - If not specified, the site default partition may be used.
+
+2. *Number of CPU cores* (workers / processes / Pool size)
+   - Your requested cores must comply with partition-specific policies.
+   - Some partitions enforce per-node core constraints.
+   - Example:
+     - =orfoz= and =hamsi= → typically 56 cores per node (half-node allowed)
+     - =barbun= → 40 cores per node
+   - Always verify partition rules before submission.
+
+3. *Wall time* (=c.AdditionalProperties.WallTime=)
+   - Maximum runtime of your job.
+   - Required.
+   - Upper limits are partition dependent (often up to 3 days).
+
+**** Viewing Current Settings
+
+#+begin_src matlab
+c.AdditionalProperties
+#+end_src
+
+
+
+
+
+
+
+
+
+
+*** CPU and Memory Relationship (Conceptual Model)
+
+On TRUBA, most partitions follow a *memory-per-CPU* allocation model.
+
+This means:
+
+- Memory allocation scales with the number of requested CPU cores.
+- Requesting more cores results in proportionally more memory.
+
+For example (conceptual):
+
+If a node has:
+
+- 112 CPU cores
+- 256 GB RAM
+
+Then approximate memory per core is:
+
+=256 / 112 ≈ 2.3 GB per core=
+
+If your job requires 100 GB RAM:
+
+=100 / 2.3 ≈ 44 cores=
+
+Even if your application is not CPU-intensive,
+you may need to request additional cores to obtain sufficient memory.
+
+**** Important: Responsible Resource Usage
+
+Although increasing core count increases available memory:
+
+- Do not request excessive cores unnecessarily.
+- Choose a partition with higher memory-per-core when appropriate.
+
+For example (based on current TRUBA configuration):
+
+- =orfoz= → ~2000 MB per CPU
+- =hamsi= → ~3400 MB per CPU
+- =barbun= → ~8500 MB per CPU
+
+For memory-heavy workloads, selecting a partition with higher
+memory per CPU may reduce unnecessary CPU allocation.
+
+
+*** Resource Selection Strategy
+
+Before submitting your job, identify the workload type:
+
+**** CPU-bound Jobs
+
+- Heavy numerical computation
+- Parallel loops
+- Linear algebra
+
+→ Increase *Pool* size appropriately.
+→ Match partition core constraints (e.g., 56-core blocks on =orfoz=).
+
+**** Memory-bound Jobs
+
+- Large matrices
+- Large data loading
+- In-memory preprocessing
+
+→ Estimate required memory.
+→ Compute approximate cores needed via memory-per-CPU model.
+→ Prefer partitions with higher DefMemPerCPU (e.g., =barbun=).
+
+**** GPU-bound Jobs
+
+- Deep learning
+- CUDA-based computation
+
+→ Use GPU partitions (=akya-cuda=, =barbun-cuda=).
+→ Ensure GPU-to-CPU ratio follows partition policy.
+
+
+*** Example: Minimal Valid Test Job on TRUBA (Debug Partition)
+
+For quick testing, it is recommended to use the =debug= partition.
+
+First, configure the cluster:
+
+#+begin_src matlab
+c = parcluster;
+c.AdditionalProperties.Partition = 'debug';
+c.AdditionalProperties.NumNodes  = 1;
+c.AdditionalProperties.WallTime  = '0-00:10';
+#+end_src
+
+Then submit a minimal test job:
+
+#+begin_src matlab
+j = batch(c, @pwd, 1, {}, ...
+    'Pool', 2, ...
+    'CurrentFolder', '.', ...
+    'AutoAddClientPath', false);
+#+end_src
+
+This example:
+
+- Runs on the =debug= partition
+- Uses a small worker pool
+- Requests only 1 node
+- Is suitable for quick functional testing
+
+
+
+
+*** Example: Running on the =orfoz= Partition (56-core half-node)
+
+On =orfoz=, TRUBA enforces a per-node CPU policy: jobs must request
+56 or 112 CPU cores per node.
+
+IMPORTANT:
+For MATLAB pool jobs, the Slurm plugin requests:
+
+- =Total Slurm tasks = Pool + 1=
+
+(The extra 1 task is used for job orchestration.)
+
+Therefore, to request *56 cores per node* on =orfoz=, you must set:
+
+- =Pool = 55=  → Slurm submits =--ntasks=56=
+
+**** Correct example (half node on =orfoz=)
+
+#+begin_src matlab
+c = parcluster;
+c.AdditionalProperties.Partition = 'orfoz';
+c.AdditionalProperties.NumNodes  = 1;
+c.AdditionalProperties.WallTime  = '0-00:30';
+
+j = batch(c, @pwd, 1, {}, ...
+    'Pool', 55, ...
+    'CurrentFolder', '.', ...
+    'AutoAddClientPath', false);
+#+end_src
+
+IMPORTANT:
+On partitions with per-node core policies (e.g., =orfoz=), always set:
+
+- =c.AdditionalProperties.NumNodes=
+
+If =NumNodes= is left unset, Slurm may place the job in a way that violates per-node policies.
+
+
+For a half-node job on =orfoz=, use:
+
+- =NumNodes = 1=
+- =Pool = 55=  (because MATLAB requests =Pool+1= tasks → 56 total)
+
+
+**** Common mistake (will be rejected)
+
+If you use =Pool=56=, MATLAB will submit =--ntasks=57=, and Slurm rejects it:
+
+#+begin_example
+sbatch: error: Orfoz kuyruguna gonderilen islerde node basina 56/112 cekirdek talep ediniz.
+#+end_example
+
+
+**** Slurm Command Generated by MATLAB
+
+When you submit the job, MATLAB prints the exact Slurm
+arguments used for submission:
+
+#+begin_example
+Submit arguments:
+--ntasks=55 --cpus-per-task=1 -D /arf/scratch/$USER \
+--ntasks-per-core=1 -t 0-3:00 -C orfoz -N 1 -p orfoz
+#+end_example
+
+This shows how MATLAB parameters map to Slurm options:
+
+- =Pool= → total tasks (--ntasks)
+- =NumNodes= → -N
+- =Partition= → -p
+- =Constraint= → -C
+- =WallTime= → -t
+
+
+
+
+
+
+
+
+
+
+*** Example: Submitting a GPU Job (=barbun-cuda=)
+
+This section shows a minimal *GPU* test job submission from MATLAB to TRUBA.
+
+**** Key policy on =barbun-cuda=
+
+TRUBA enforces CPU↔GPU request rules on GPU partitions.
+
+On =barbun-cuda=:
+
+- A GPU request is mandatory.
+- CPU cores per node must be requested in multiples of 20.
+- Policy requires *1 GPU per 20 CPU cores per node*.
+
+Since MATLAB pool jobs submit an extra orchestration task, the Slurm plugin typically requests:
+
+- =Total Slurm tasks = Pool + 1=
+
+This matters when matching the required CPU counts.
+
+**** Hardware note
+
+The =barbun-cuda= nodes provide *2 GPUs per node*.
+
+A common valid request for one node is therefore:
+
+- 2 GPUs per node
+- 40 CPU cores per node
+
+**** Minimal valid GPU test job (2 GPUs, 40 CPUs on 1 node)
+
+Configure the cluster profile:
+
+#+begin_src matlab
+c = parcluster;
+
+% Target partition
+c.AdditionalProperties.Partition = 'barbun-cuda';
+
+% Request 1 node for the test
+c.AdditionalProperties.NumNodes = 1;
+
+% Set a short walltime for testing
+c.AdditionalProperties.WallTime = '0-00:30';
+
+% Request 2 GPUs on the node
+c.AdditionalProperties.GPUsPerNode = 2;
+#+end_src
+
+Submit a minimal job.
+
+To satisfy the 40-CPU requirement on one node, set:
+
+- =Pool = 39=  → Slurm submits =--ntasks=40=
+
+#+begin_src matlab
+j = batch(c, @gpuDeviceCount, 1, {}, ...
+    'Pool', 39, ...
+    'CurrentFolder', '.', ...
+    'AutoAddClientPath', false);
+#+end_src
+
+Fetch and inspect results:
+
+#+begin_src matlab
+wait(j);
+out = fetchOutputs(j);
+out{1}
+#+end_src
+
+Expected output is the number of GPUs visible to the worker (typically 2).
+
+**** Slurm command generated by MATLAB
+
+When submitting, MATLAB prints the Slurm arguments used by the plugin.
+A successful submission should include:
+
+- =-p barbun-cuda=
+- =-N 1=
+- =--ntasks=40=
+- a GPU request (gres / TRES)
+
+#+begin_example
+Submit arguments: ...
+#+end_example
+
+Use this output to verify that the request matches TRUBA policy
+(e.g., CPUs and GPUs requested per node).
+
+**** Common mistakes (and what happens)
+
+***** Missing GPU request
+
+If you submit to =barbun-cuda= without requesting a GPU, Slurm will reject the job.
+
+Typical message:
+
+#+begin_example
+barbn-cuda kuyruguna sadece GPU talebi olan isler gonderilebilir.
+#+end_example
+
+***** CPU/GPU mismatch
+
+If you request 2 GPUs but do not request 40 CPUs per node (multiples of 20 per GPU),
+Slurm will reject the job.
+
+Examples that are likely to fail:
+
+- Too few CPUs for 2 GPUs (e.g., 20 CPUs with 2 GPUs)
+- CPU count not a multiple of 20
+
+**** Tips
+
+- Start GPU tests with short walltime and 1 node.
+- Keep your working directory under =/arf/scratch=.
+- If you see a policy-related rejection, first check:
+  - =Partition=
+  - =NumNodes=
+  - =GPUsPerNode=
+  - =Pool= (remember =Pool + 1= tasks)
+
+
+
+
+
+
+
+
+
+
+
+*** What Happens After You Submit a Job?
+
+After submission, the job enters the Slurm queue.
+The start time depends on:
+
+- Current cluster load
+- Partition priority
+- Requested resources (nodes, GPUs, walltime)
+
+The job may remain in =queued= state for some time before running.
+
+**** You Can Close MATLAB
+
+Once the job is submitted:
+
+- You may close MATLAB.
+- You may shut down your desktop session.
+- The job continues to run on TRUBA.
+
+To check the job later:
+
+#+begin_src matlab
+c = parcluster;
+c.Jobs
+#+end_src
+
+Or from the login node:
+
+#+begin_src bash
+squeue -u $USER
+#+end_src
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+** Parallel Batch Job – MATLAB on the HPC Cluster or Desktop
+
+In addition to serial batch jobs, TRUBA supports parallel batch jobs.
+In this mode, MATLAB submits a detached job to the scheduler and
+allocates a worker pool for parallel execution.
+
+The following example demonstrates how to submit a parallel batch job.
+
+First, create or use a function (for example, a demo function):
+
+#+begin_src matlab
+c = parcluster;
+job = c.batch(@pctdemo_task_tutorial, 1, {}, 'Pool', 2);
+#+end_src
+
+**Explanation of the Code**
+
+- `c = parcluster;`  
+  Loads the default cluster profile configured for TRUBA.
+  This profile determines how MATLAB submits jobs to the scheduler.
+
+- `c.batch(...)`  
+  Submits a *batch job* to the cluster. The job runs independently
+  of your MATLAB session and continues even if MATLAB is closed.
+
+- `@pctdemo_task_tutorial`  
+  Function handle specifying the code to execute on the cluster.
+  The function must exist as an `.m` file so it can be transferred
+  to worker nodes.
+
+- `1`  
+  Number of expected output arguments returned by the function.
+
+- `{}`  
+  Input arguments passed to the function (empty here).
+
+- `'Pool', 2`  
+  Requests a parallel pool with 2 workers.
+  Inside the batch job, any `parfor` or parallel constructs
+  will use these workers.
+
+**Important:**  
+Requesting a pool of N workers typically requires N+1 CPU cores,
+as one core is used by the client process coordinating the pool.
+
+---
+
+**Waiting for Job Completion**
+
+#+begin_src matlab
+wait(job);
+#+end_src
+
+This command blocks the MATLAB session until the job finishes.
+
+---
+
+**Retrieving Job Output**
+
+#+begin_src matlab
+out = fetchOutputs(job);
+#+end_src
+
+`fetchOutputs` downloads the saved output(s) from the cluster.
+The result is returned as a cell array.
+
+---
+
+**Viewing Job Diagnostics**
+
+#+begin_src matlab
+job.Error
+job.Diary
+#+end_src
+
+- `job.Error` displays error information if the job failed.
+- `job.Diary` shows the command window output captured from workers.
+
+---
+
+**Cleaning Up**
+
+#+begin_src matlab
+delete(job);
+#+end_src
+
+Always delete completed jobs to remove metadata from MATLAB’s
+job storage and avoid clutter.
+
+---
+
+This workflow is recommended for long-running or production workloads.
+Unlike interactive pools, batch jobs are fully managed by the scheduler.
+
+
+** ARF and CUDA Cluster Configuration
+
+TRUBA operates two separate Slurm clusters:
+
+- ARF
+- CUDA (restricted access)
+
+Since ARF and CUDA are separate Slurm control systems,
+a separate cluster profile must be created for each cluster
+when submitting jobs from local MATLAB.
+
+Users with CUDA access must repeat the configuration process
+for the CUDA Open OnDemand endpoint:
+
+https://172.16.6.16
+
+Access requirements are described in:
+
+https://docs.truba.gov.tr/1-kaynaklar/arf_acc/arf_acc_baglanti.html#arf-acc-baglanti
+
+
+
+
+
+
+** License Requirement for Remote Job Submission                   :noexport:
+
+IMPORTANT:
+
+TRUBA operates under a sponsored academic MATLAB license.
+
+To submit jobs from MATLAB installed on your personal computer
+to the TRUBA cluster, the MATLAB installation on your local machine
+must also be covered by a valid academic license.
+
+Remote job submission requires:
+
+- A valid academic MATLAB license on the local machine.
+- Access to the TRUBA-sponsored MATLAB license on the cluster.
+
+Users without an academic MATLAB license on their local machine
+cannot submit jobs remotely via the cluster profile method.
+
+In such cases, users should connect to TRUBA via Open OnDemand
+and run MATLAB directly on the cluster.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+* Advanced: Interactive Parallel Jobs from MATLAB on the Desktop
+
+This section describes how to launch a parallel pool on TRUBA directly
+from MATLAB running on your personal computer.
+
+This workflow is recommended only for advanced users who need
+interactive development while using cluster resources.
+
+**Important:** This mode requires proper network configuration
+between your computer and TRUBA worker nodes.
+
+---
+
+**Prerequisites**
+
+To run an interactive pool job launched from your desktop onto TRUBA,
+the following conditions must be satisfied:
+
+1. You must be connected to the institutional VPN.
+2. TCP port 27370 must be open for inbound traffic on your machine.
+3. MATLAB must advertise your VPN private IP address to worker nodes.
+
+To configure the hostname inside MATLAB:
+
+#+begin_src matlab
+sethostname
+#+end_src
+
+Expected output:
+
+#+begin_src matlab
+Found private IP address.  Setting hostname: 10.x.x.x
+#+end_src
+
+This command must be executed every time MATLAB is restarted.
+Alternatively, add it to your `startup.m` file.
+
+If your firewall blocks communication, you may see an error such as:
+
+"Check whether a firewall is blocking communication between the worker machines and the MATLAB client machine."
+
+---
+
+**Starting a Parallel Pool on TRUBA**
+
+#+begin_src matlab
+% Get cluster profile
+c = parcluster;
+
+% Start 28 workers (example)
+pool = c.parpool(28);
+#+end_src
+
+Explanation:
+
+- `parcluster` connects MATLAB to the TRUBA cluster profile.
+- `parpool(28)` submits a Slurm job that allocates 28 workers.
+- Workers may span multiple nodes depending on scheduler decisions.
+
+The pool remains active until explicitly deleted.
+
+---
+
+** TRUBA Resource Constraints (Important)
+
+Desktop-based interactive pools do not bypass TRUBA scheduling rules.
+
+Even when launching pools from MATLAB on your desktop,
+all TRUBA partition constraints still apply.
+
+The pool creation command internally submits a Slurm job.
+If resource limits are violated, the job submission will fail.
+
+Common error messages include:
+
+#+begin_src text
+sbatch: error: Orfoz kuyruguna gonderilen isleride node basina 56/112 cekirdek talep ediniz.
+sbatch: error: Batch job submission failed: Requested time limit is invalid (missing or exceeds some limit)
+#+end_src
+
+These errors indicate that your requested configuration does not satisfy partition limits. See the above section for setting these parameters.
+
+Typical causes:
+
+- Requesting more workers than allowed per node
+- Exceeding maximum walltime
+- Using incorrect partition
+- Not specifying required time limit
+
+Before adjusting `parpool(N)`, verify:
+
+- The partition you are using
+- Maximum cores allowed per node
+- Maximum allowed walltime
+- Whether multi-node execution is permitted
+
+Always ensure that:
+
+  requested workers ≤ allowed cores per node
+
+If necessary, reduce the pool size or adjust it according to the cluster rules:
+
+#+begin_src matlab
+pool = c.parpool(56);
+#+end_src
+
+or adjust cluster profile settings as documented earlier.
+
+
+**Simple Numerical Example**
+
+#+begin_src matlab
+tic;
+R = zeros(1,280);
+parfor i = 1:280
+    R(i) = sum(svd(rand(400)));
+end
+toc;
+mean(R)
+#+end_src
+
+Explanation:
+
+- 280 iterations ensure sufficient work per worker.
+- Each iteration computes singular values of a random 400x400 matrix.
+- `mean(R)` provides numerical output.
+- `tic/toc` measures elapsed wall time.
+
+To compare with serial execution:
+
+#+begin_src matlab
+tic;
+for i = 1:280
+    sum(svd(rand(400)));
+end
+toc
+#+end_src
+
+Parallel execution should show noticeable speedup for sufficiently large workloads.
+
+---
+
+**Understanding Overhead**
+
+When you call `parpool`, MATLAB:
+
+- Submits a Slurm job
+- Allocates nodes
+- Starts worker MATLAB processes
+- Performs license checks
+- Establishes TCP connections
+- Synchronizes the environment
+
+This startup phase can take from tens of seconds to several minutes.
+
+If the actual computation is small (e.g., `parfor i=1:10, rand; end`),
+startup overhead dominates and parallel execution may appear slow.
+
+Parallel computing is beneficial only when:
+
+  computation time  >>  startup and communication overhead
+
+---
+
+**Monitoring Jobs**
+
+When a pool is active, MATLAB Job Monitor shows:
+
+  Description: Interactive pool
+  State: running
+
+This indicates that workers are allocated and idle or ready.
+
+It does NOT necessarily mean that a `parfor` loop is currently executing.
+
+As long as the pool is open, cluster resources remain allocated.
+
+** Opening Job Monitor
+
+To view active pools and cluster jobs, open:
+
+Parallel → Monitor Jobs
+
+#+CAPTION: Opening the Job Monitor from the MATLAB Parallel menu.
+#+NAME: fig:open_job_monitor
+[[file:images/open_job_monitor.png]]
+
+---
+
+** Example: Job Monitor Window
+
+#+CAPTION: MATLAB Job Monitor showing running and finished jobs.
+#+NAME: fig:job_monitor_window
+[[file:images/job_monitor_window.png]]
+
+In this window:
+
+- *Description: Interactive pool* indicates that a parallel pool is active.
+- *State: running* means that worker processes are allocated.
+- This does **not** necessarily mean that a `parfor` loop is currently executing.
+
+As long as the pool remains open, cluster resources stay allocated.
+
+
+---
+
+**Closing the Pool**
+
+Always delete the pool after finishing:
+
+#+begin_src matlab
+delete(gcp)
+#+end_src
+
+Failing to close the pool wastes compute resources.
+
+Idle pools may be terminated automatically after a timeout
+(currently ~30 minutes of inactivity; subject to change).
+
+---
+
+**Best Practice Recommendation**
+
+- Use this mode for interactive development only.
+- For production runs, use batch submission (`sbatch`).
+- If working inside an OnDemand desktop session, prefer a local pool
+  (`parpool('local',N)`) instead of submitting a second cluster job.
+
+
+
+
+
+
+* TRUBA MATLAB Helper Functions
+
+TRUBA provides several helper functions that simplify interaction
+with Slurm and cluster resources from within MATLAB.
+
+These functions are optional but strongly recommended
+for advanced usage and troubleshooting.
+
+| Function | Description | Notes |
+|----------+-------------+-------|
+| clusterFeatures | Lists cluster features and node constraints | Useful for understanding partition limits |
+| clusterGpuCards | Lists available GPU models on TRUBA | Use before requesting GPU resources |
+| clusterPartitionNames | Lists available Slurm partitions/queues | Verify before setting profile |
+| fixConnection | Reestablishes cluster connection | Applicable only for Desktop mode |
+| seff | Displays Slurm efficiency statistics for a job | Similar to Linux `seff` command |
+| willRun | Explains why a job is queued | Helps diagnose scheduling issues |
+
+---
+
+**Example Usage**
+
+#+begin_src matlab
+clusterPartitionNames
+#+end_src
+
+Lists available TRUBA partitions.
+
+#+begin_src matlab
+clusterFeatures
+#+end_src
+
+Displays node-level constraints such as maximum cores per node.
+
+#+begin_src matlab
+seff(326528)
+#+end_src
+
+Displays efficiency statistics for the given Slurm job ID.
+
+#+begin_src matlab
+willRun(326528)
+#+end_src
+
+Explains why a job is currently queued.
+
+#+begin_src matlab
+fixConnection
+#+end_src
+
+Useful after reconnecting to VPN if desktop pools fail.
+
+
+* Troubleshooting and Debugging
+
+When a job fails or behaves unexpectedly, MATLAB provides
+tools to retrieve log files and scheduler information.
+
+---
+
+**Retrieving Debug Logs**
+
+If a serial or batch job produces an error,
+use the `getDebugLog` method to view the error log.
+
+For independent jobs (multiple tasks):
+
+#+begin_src matlab
+c.getDebugLog(job.Tasks)
+#+end_src
+
+For pool jobs:
+
+#+begin_src matlab
+c.getDebugLog(job)
+#+end_src
+
+The debug log contains detailed error messages generated
+by MATLAB workers on TRUBA.
+
+---
+
+**Retrieving Scheduler Job ID**
+
+Cluster administrators may request the Slurm job ID
+for troubleshooting purposes.
+
+You can obtain the scheduler ID by calling:
+
+#+begin_src matlab
+job.getTaskSchedulerIDs()
+#+end_src
+
+Example output:
+
+#+begin_src matlab
+ans =
+    25539
+#+end_src
+
+This number corresponds to the Slurm job ID
+visible via `squeue` or `sacct` on TRUBA.
+
+
+** Licensing Issues
+
+MATLAB jobs running on TRUBA require valid licenses for:
+- MATLAB
+- Parallel Computing Toolbox (for pool jobs / parpool / batch with Pool)
+
+Symptoms of licensing problems may include:
+- Job fails immediately after submission
+- Workers cannot start
+- parpool hangs or reports license checkout failures
+
+*** Check license availability (local MATLAB)
+
+#+begin_src matlab
+license('test','Distrib_Computing_Toolbox')
+#+end_src
+
+Return value:
+- 1  -> toolbox license available
+- 0  -> not available
+
+#+begin_src matlab
+license('inuse')
+#+end_src
+
+*** Check license status on TRUBA (if permitted)
+
+#+begin_src bash
+lmstat -a
+#+end_src
+
+If you cannot access license tools on TRUBA, include the Slurm job ID and job debug logs
+when contacting TRUBA support (see: Retrieving Debug Logs / Retrieving Scheduler Job ID).
+
+
+
+* Practical Examples
+
+This section provides complete examples using `.m` files
+that can be executed on TRUBA.
+
+---
+
+**Example 1: Serial Batch Job from an .m File**
+
+Create a file named `serial_example.m`:
+
+#+begin_src matlab
+function result = serial_example(n)
+    result = 0;
+    for i = 1:n
+        result = result + sum(eig(rand(300)));
+    end
+end
+#+end_src
+
+Submit the job:
+
+#+begin_src matlab
+c = parcluster;
+job = c.batch(@serial_example, 1, {10});
+wait(job);
+out = fetchOutputs(job);
+result = out{1};
+delete(job);
+#+end_src
+
+This example runs entirely on a single worker.
+
+---
+
+**Example 2: Parallel Batch Job from an .m File**
+
+Create `parallel_example.m`:
+
+#+begin_src matlab
+function total = parallel_example(n)
+    total = 0;
+    parfor i = 1:n
+        total = total + sum(svd(rand(400)));
+    end
+end
+#+end_src
+
+Submit with a pool:
+
+#+begin_src matlab
+c = parcluster;
+job = c.batch(@parallel_example, 1, {20}, 'Pool', 4);
+wait(job);
+out = fetchOutputs(job);
+total = out{1};
+delete(job);
+#+end_src
+
+Explanation:
+
+- `'Pool', 4` allocates 4 workers.
+- The `parfor` loop distributes iterations across workers.
+- Suitable for compute-intensive workloads.
+
+---
+
+**Example 3: Interactive Parallel Test (Development Only)**
+
+#+begin_src matlab
+sethostname;
+pool = parpool(8);
+
+tic;
+parfor i = 1:100
+    A = eig(rand(500));
+end
+toc;
+
+delete(gcp);
+#+end_src
+
+Use interactive mode for testing only.
+For long-running workloads, prefer batch submission.
+
+---
+
+**Example 4: Checking Job Efficiency**
+
+After job completion:
+
+#+begin_src matlab
+schedulerID = job.getTaskSchedulerIDs();
+seff(schedulerID)
+#+end_src
+
+This displays resource efficiency information from Slurm.
+
+
+* Further Reading
+
+To learn more about MATLAB Parallel Computing Toolbox,
+the following official MathWorks resources may be helpful:
+
+- [[https://www.mathworks.com/products/parallel-computing/index.html][Parallel Computing Overview]]
+- [[https://www.mathworks.com/help/parallel-computing/][Parallel Computing Documentation]]
+- [[https://www.mathworks.com/help/parallel-computing/examples.html][Parallel Computing Coding Examples]]
+- [[https://www.mathworks.com/products/parallel-computing/tutorials.html][Parallel Computing Tutorials]]
+- [[https://www.mathworks.com/products/parallel-computing/videos.html][Parallel Computing Videos]]
+- [[https://www.mathworks.com/products/parallel-computing/webinars.html][Parallel Computing Webinars]]
+
+These resources cover general usage of parallel computing
+within MATLAB and are not specific to TRUBA cluster configuration.
+
+
+* MY TASKS                                                         :noexport:
+- [ ] In OpenOnDemand (172.16.6.20) either fix matlab or remove from the options. 
+- [X] configCluster (Why there are 3 options) (Old configuration)
+Ensure you pick a cluster you have access to.
+	[1] truba
+	[2] truba-arf
+	[3] truba-cuda
+
+- [ ] You can constrain the nodes in the partition, for instance send jobs to debug partition with orfoz (c.AdditionalProperties.Constraint = 'orfoz'). Note that if you choose debug partition and constrain the node then there is no obligation to choose 56/112, however if you choose directly orfoz partition then you need to. 
+
+- [ ] Adding a special matlab cluster to easily create pools (no need restrictions like 56xn etc)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
