@@ -69,6 +69,16 @@ Open MATLAB on your computer and type =license= in the Command Window. If you ar
 
 
 
+* Ways to Run MATLAB on TRUBA
+
+There are three supported methods:
+
+1. Open OnDemand (interactive GUI) – Recommended for beginners.
+2. Slurm Batch Script – Recommended for production HPC jobs.
+3. Local MATLAB Cluster Profile (batch) – Advanced workflow.
+
+
+
 * Configuring MATLAB to Run on the HPC Cluster (Web Browser via Open OnDemand)
 This method allows you to use a full graphical MATLAB interface directly in your web browser (Open OnDemand). It is the best choice if you want to work interactively.
 
@@ -796,7 +806,983 @@ simply restart MATLAB.
 
 
 
-* EXAMPLES (Cheatsheet)
+* Advanced: Interactive Parallel Jobs from MATLAB on the Desktop
+
+This section describes how to launch a parallel pool on TRUBA directly
+from MATLAB running on your personal computer.
+
+This workflow is recommended only for advanced users who need
+interactive development while using cluster resources.
+
+**Important:** This mode requires proper network configuration
+between your computer and TRUBA worker nodes.
+
+---
+
+**Prerequisites**
+
+To run an interactive pool job launched from your desktop onto TRUBA,
+the following conditions must be satisfied:
+
+1. You must be connected to the institutional VPN.
+2. TCP port 27370 must be open for inbound traffic on your machine.
+3. MATLAB must advertise your VPN private IP address to worker nodes.
+
+To configure the hostname inside MATLAB:
+
+#+begin_src matlab
+sethostname
+#+end_src
+
+Expected output:
+
+#+begin_src matlab
+Found private IP address.  Setting hostname: 10.x.x.x
+#+end_src
+
+This command must be executed every time MATLAB is restarted.
+Alternatively, add it to your `startup.m` file.
+
+If your firewall blocks communication, you may see an error such as:
+
+"Check whether a firewall is blocking communication between the worker machines and the MATLAB client machine."
+
+---
+
+**Starting a Parallel Pool on TRUBA**
+
+#+begin_src matlab
+% Get cluster profile
+c = parcluster;
+
+% Start 28 workers (example)
+pool = c.parpool(28);
+#+end_src
+
+Explanation:
+
+- `parcluster` connects MATLAB to the TRUBA cluster profile.
+- `parpool(28)` submits a Slurm job that allocates 28 workers.
+- Workers may span multiple nodes depending on scheduler decisions.
+
+The pool remains active until explicitly deleted.
+
+---
+
+** Interactive Parallel Work
+Instead of running a local pool on your own computer, your code can now run across multiple nodes on the TRUBA cluster simultaneously.
+
+#+begin_src matlab
+% Single-line test: Measure time to generate 1,000 numbers and display the sum
+tic; parfor idx = 1:1000, a(idx) = rand; end; result = sum(a), toc
+#+end_src
+
+
+
+** Closing the Pool
+When you are finished with your parallel tasks, it is a good practice to shut down the pool to free up cluster resources:
+
+#+begin_src matlab
+delete(gcp('nocreate'))
+#+end_src
+
+** TRUBA Resource Constraints (Important)
+
+Desktop-based interactive pools do not bypass TRUBA scheduling rules.
+
+Even when launching pools from MATLAB on your desktop,
+all TRUBA partition constraints still apply.
+
+The pool creation command internally submits a Slurm job.
+If resource limits are violated, the job submission will fail.
+
+Common error messages include:
+
+#+begin_src text
+sbatch: error: Orfoz kuyruguna gonderilen isleride node basina 56/112 cekirdek talep ediniz.
+sbatch: error: Batch job submission failed: Requested time limit is invalid (missing or exceeds some limit)
+#+end_src
+
+These errors indicate that your requested configuration does not satisfy partition limits. See the above section for setting these parameters.
+
+Typical causes:
+
+- Requesting more workers than allowed per node
+- Exceeding maximum walltime
+- Using incorrect partition
+- Not specifying required time limit
+
+Before adjusting `parpool(N)`, verify:
+
+- The partition you are using
+- Maximum cores allowed per node
+- Maximum allowed walltime
+- Whether multi-node execution is permitted
+
+Always ensure that:
+
+  requested workers ≤ allowed cores per node
+
+If necessary, reduce the pool size or adjust it according to the cluster rules:
+
+#+begin_src matlab
+pool = c.parpool(56);
+#+end_src
+
+or adjust cluster profile settings as documented earlier.
+
+
+**Simple Numerical Example**
+
+#+begin_src matlab
+tic;
+R = zeros(1,280);
+parfor i = 1:280
+    R(i) = sum(svd(rand(400)));
+end
+toc;
+mean(R)
+#+end_src
+
+Explanation:
+
+- 280 iterations ensure sufficient work per worker.
+- Each iteration computes singular values of a random 400x400 matrix.
+- `mean(R)` provides numerical output.
+- `tic/toc` measures elapsed wall time.
+
+To compare with serial execution:
+
+#+begin_src matlab
+tic;
+for i = 1:280
+    sum(svd(rand(400)));
+end
+toc
+#+end_src
+
+Parallel execution should show noticeable speedup for sufficiently large workloads.
+
+---
+
+**Understanding Overhead**
+
+When you call `parpool`, MATLAB:
+
+- Submits a Slurm job
+- Allocates nodes
+- Starts worker MATLAB processes
+- Performs license checks
+- Establishes TCP connections
+- Synchronizes the environment
+
+This startup phase can take from tens of seconds to several minutes.
+
+If the actual computation is small (e.g., `parfor i=1:10, rand; end`),
+startup overhead dominates and parallel execution may appear slow.
+
+Parallel computing is beneficial only when:
+
+  computation time  >>  startup and communication overhead
+
+---
+
+**Monitoring Jobs**
+
+When a pool is active, MATLAB Job Monitor shows:
+
+  Description: Interactive pool
+  State: running
+
+This indicates that workers are allocated and idle or ready.
+
+It does NOT necessarily mean that a `parfor` loop is currently executing.
+
+As long as the pool is open, cluster resources remain allocated.
+
+** Opening Job Monitor
+
+To view active pools and cluster jobs, open:
+
+Parallel → Monitor Jobs
+
+#+CAPTION: Opening the Job Monitor from the MATLAB Parallel menu.
+#+NAME: fig:open_job_monitor
+[[file:images/open_job_monitor.png]]
+
+---
+
+** Example: Job Monitor Window
+
+#+CAPTION: MATLAB Job Monitor showing running and finished jobs.
+#+NAME: fig:job_monitor_window
+[[file:images/job_monitor_window.png]]
+
+In this window:
+
+- *Description: Interactive pool* indicates that a parallel pool is active.
+- *State: running* means that worker processes are allocated.
+- This does **not** necessarily mean that a `parfor` loop is currently executing.
+
+As long as the pool remains open, cluster resources stay allocated.
+
+
+---
+
+**Closing the Pool**
+
+Always delete the pool after finishing:
+
+#+begin_src matlab
+delete(gcp)
+#+end_src
+
+Failing to close the pool wastes compute resources.
+
+Idle pools may be terminated automatically after a timeout
+(currently ~30 minutes of inactivity; subject to change).
+
+---
+
+**Best Practice Recommendation**
+
+- Use this mode for interactive development only.
+- For production runs, use batch submission (`sbatch`).
+- If working inside an OnDemand desktop session, prefer a local pool
+  (`parpool('local',N)`) instead of submitting a second cluster job.
+
+
+
+
+
+
+
+* TRUBA MATLAB Helper Functions
+
+TRUBA provides several helper functions that simplify interaction
+with Slurm and cluster resources from within MATLAB.
+
+These functions are optional but strongly recommended
+for advanced usage and troubleshooting.
+
+| Function              | Description                                    | Notes                                     |
+|-----------------------+------------------------------------------------+-------------------------------------------|
+| clusterFeatures       | Lists cluster features and node constraints    | Useful for understanding partition limits |
+| clusterGpuCards       | Lists available GPU models on TRUBA            | Use before requesting GPU resources       |
+| clusterPartitionNames | Lists available Slurm partitions/queues        | Verify before setting profile             |
+| fixConnection         | Reestablishes cluster connection               | Applicable only for Desktop mode          |
+| seff                  | Displays Slurm efficiency statistics for a job | Similar to Linux `seff` command           |
+| willRun               | Explains why a job is queued                   | Helps diagnose scheduling issues          |
+
+---
+
+**Example Usage**
+
+#+begin_src matlab
+clusterPartitionNames
+#+end_src
+
+Lists available TRUBA partitions.
+
+#+begin_src matlab
+clusterFeatures
+#+end_src
+
+Displays node-level constraints such as maximum cores per node.
+
+#+begin_src matlab
+seff(326528)
+#+end_src
+
+Displays efficiency statistics for the given Slurm job ID.
+
+#+begin_src matlab
+willRun(326528)
+#+end_src
+
+Explains why a job is currently queued.
+
+#+begin_src matlab
+fixConnection
+#+end_src
+
+Useful after reconnecting to VPN if desktop pools fail.
+
+
+* Troubleshooting and Debugging
+
+When a job fails or behaves unexpectedly, MATLAB provides
+tools to retrieve log files and scheduler information.
+
+---
+
+**Retrieving Debug Logs**
+
+If a serial or batch job produces an error,
+use the `getDebugLog` method to view the error log.
+
+For independent jobs (multiple tasks):
+
+#+begin_src matlab
+c.getDebugLog(job.Tasks)
+#+end_src
+
+For pool jobs:
+
+#+begin_src matlab
+c.getDebugLog(job)
+#+end_src
+
+The debug log contains detailed error messages generated
+by MATLAB workers on TRUBA.
+
+---
+
+**Retrieving Scheduler Job ID**
+
+Cluster administrators may request the Slurm job ID
+for troubleshooting purposes.
+
+You can obtain the scheduler ID by calling:
+
+#+begin_src matlab
+job.getTaskSchedulerIDs()
+#+end_src
+
+Example output:
+
+#+begin_src matlab
+ans =
+    25539
+#+end_src
+
+This number corresponds to the Slurm job ID
+visible via `squeue` or `sacct` on TRUBA.
+
+
+** Licensing Issues
+
+MATLAB jobs running on TRUBA require valid licenses for:
+- MATLAB
+- Parallel Computing Toolbox (for pool jobs / parpool / batch with Pool)
+
+Symptoms of licensing problems may include:
+- Job fails immediately after submission
+- Workers cannot start
+- parpool hangs or reports license checkout failures
+
+*** Check license availability (local MATLAB)
+
+#+begin_src matlab
+license('test','Distrib_Computing_Toolbox')
+#+end_src
+
+Return value:
+- 1  -> toolbox license available
+- 0  -> not available
+
+#+begin_src matlab
+license('inuse')
+#+end_src
+
+*** Check license status on TRUBA (if permitted)
+
+#+begin_src bash
+lmstat -a
+#+end_src
+
+If you cannot access license tools on TRUBA, include the Slurm job ID and job debug logs
+when contacting TRUBA support (see: Retrieving Debug Logs / Retrieving Scheduler Job ID).
+
+
+
+
+
+* A parfor Example (Four Execution Methods)
+
+In this section, we demonstrate the same ~parfor~ example using four different
+execution methods:
+
+1. Submitting from a local MATLAB session configured with the TRUBA cluster profile
+2. Running interactively on TRUBA with ~parpool~
+3. Submitting via a Slurm batch script
+4. Submitting via Open OnDemand
+
+The test function used in all cases is shown below.
+
+#+begin_src matlab
+function t = parfor_demo()
+% Simple parfor timing demo (runs on workers)
+N = 55;
+
+tic
+parfor i = 1:N
+    pause(1);
+end
+t = toc;
+
+fprintf("parfor_demo: N=%d, elapsed=%.2f s\n", N, t);
+end
+#+end_src
+
+We use the ~orfoz~ partition with 56 cores per node. Since MATLAB’s Slurm
+integration uses one orchestration task in addition to the worker pool,
+we set:
+
+- ~Pool = 55~
+- ~NumNodes = 1~
+
+so that the total requested tasks become 56.
+
+** Why Parallelization Matters
+
+Each iteration takes approximately one second (~pause(1)~).  
+With ~N = 55~, a serial loop would take approximately:
+
+#+begin_example
+55 iterations × 1 second ≈ 55 seconds
+#+end_example
+
+When using ~parfor~ with a pool of 55 workers, all iterations are dispatched
+concurrently in a single execution wave. The theoretical minimum runtime is:
+
+#+begin_example
+≈ 1 second
+#+end_example
+
+In practice, the measured runtime is slightly higher (e.g., around
+1.8–2.0 seconds) due to parallel overhead, including:
+
+- Task scheduling
+- Worker communication
+- Synchronization barriers
+- System-level latency
+
+Even with this overhead, the wall-clock time decreases from nearly one
+minute to just a few seconds. This confirms that the allocated CPU cores
+are actively utilized instead of remaining idle.
+
+
+** Submitting from a Local MATLAB Session (Cluster Profile)
+
+*** File Location and Execution Model
+
+ When MATLAB runs on a local machine using a TRUBA cluster profile,
+ the ~.m~ file does not need to be manually copied to TRUBA.
+
+ During job submission, MATLAB:
+
+ 1. Packages the required function files
+ 2. Transfers them to TRUBA
+ 3. Submits the job to Slurm
+ 4. Executes the job on compute nodes
+
+ The file must be located in the current working directory or on the
+ MATLAB path so that it can be staged correctly.
+
+ Once submitted, the job runs entirely on TRUBA compute nodes, and the
+ parallel workers execute on the allocated resources.
+
+*** Cluster Configuration
+
+ #+begin_src matlab
+c = parcluster;
+c.AdditionalProperties.Partition = 'orfoz';
+c.AdditionalProperties.NumNodes  = 1;
+c.AdditionalProperties.WallTime  = '0-00:30';
+ #+end_src
+
+*** Job Submission
+
+ #+begin_src matlab
+j = batch(c, @parfor_demo, 1, {}, ...
+    'Pool', 55, ...
+    'CurrentFolder'1, '.', ...
+    'AutoAddClientPath', false);
+ #+end_src
+
+*** Job Submission (File Already Exists on TRUBA)
+
+If the script already exists on TRUBA (for example at:
+
+#+begin_example
+/arf/scratch/sbilmis/parfor_demo.m
+#+end_example
+
+and you are submitting from a local MATLAB session configured
+with the TRUBA cluster profile, you do NOT change your local
+working directory to /arf/scratch.
+
+Instead, you specify the remote execution directory using
+~CurrentFolder~.
+
+#+begin_src matlab
+j = batch(c, @parfor_demo, 1, {}, ...
+    'Pool', 55, ...
+    'CurrentFolder', '/arf/scratch/sbilmis', ...
+    'AutoAddClientPath', false);
+#+end_src
+
+Explanation:
+
+- ~@parfor_demo~ refers to the function name (parfor_demo.m).
+- The file must already exist in the specified remote directory.
+- ~CurrentFolder~ tells TRUBA where to execute the job.
+- ~AutoAddClientPath = false~ prevents MATLAB from trying to
+  stage local files to the cluster.
+- ~Pool = 55~ results in 56 Slurm tasks (55 workers + 1 client).
+
+In this mode, no file transfer occurs. MATLAB simply instructs
+Slurm to execute the script directly from the shared TRUBA filesystem.
+
+
+ 
+*** Retrieve Output
+
+ #+begin_src matlab
+wait(j);
+diary(j)          % shows printed text (including elapsed time)
+t = fetchOutputs(j);
+delete(j);
+ #+end_src
+
+ The following screenshot shows the Slurm submission arguments and the
+ measured execution time:
+
+ #+attr_html: :width 900px
+ #+caption: Slurm submission arguments and parfor execution time on orfoz (55 workers).
+ [[file:first.png]]
+
+ This runtime confirms that 55 CPU cores were actively utilized instead of remaining idle.
+
+
+
+*** Job Submission (File Already Exists on TRUBA)
+
+ If the script already exists on TRUBA (for example at:
+
+ #+begin_example
+/arf/scratch/sbilmis/parfor_demo.m
+ #+end_example
+
+ and you are submitting from a local MATLAB session configured
+ with the TRUBA cluster profile, you do NOT change your local
+ working directory to /arf/scratch.
+
+ Instead, you specify the remote execution directory using
+ ~CurrentFolder~.
+
+ #+begin_src matlab
+j = batch(c, @parfor_demo_on_arf, 1, {}, ...
+    'Pool', 55, ...
+    'CurrentFolder', '/arf/scratch/sbilmis', ...
+    'AutoAddClientPath', false);
+ #+end_src
+
+ Explanation:
+
+ - ~@parfor_demo~ refers to the function name (parfor_demo.m).
+ - The file must already exist in the specified remote directory.
+ - ~CurrentFolder~ tells TRUBA where to execute the job.
+ - ~AutoAddClientPath = false~ prevents MATLAB from trying to
+   stage local files to the cluster.
+ - ~Pool = 55~ results in 56 Slurm tasks (55 workers + 1 client).
+
+ In this mode, no file transfer occurs. MATLAB simply instructs
+ Slurm to execute the script directly from the shared TRUBA filesystem.
+
+
+ #+begin_example
+# Here is the output:
+Submit arguments: --ntasks=56 --cpus-per-task=1 -D /arf/scratch/$USER --ntasks-per-core=1 -t 0-00:30 -N 1 -p orfoz
+>> j.wait;
+>> j.diary
+--- Start Diary ---
+parfor_demo: N=55, elapsed=1.85 s
+
+--- End Diary ---
+ #+end_example
+ 
+
+
+
+** Running Interactively on TRUBA with ~parpool~
+
+In this method, you start a parallel pool interactively and then run the
+same ~parfor_demo~ function as usual. The pool workers are started on TRUBA
+compute nodes through Slurm.
+
+#+begin_src matlab
+% Get a handle to the cluster profile
+c = parcluster;
+
+% Target the orfoz partition (56 cores per node policy)
+c.AdditionalProperties.Partition = 'orfoz';
+c.AdditionalProperties.NumNodes  = 1;
+c.AdditionalProperties.WallTime  = '0-00:30';
+#+end_src
+
+*** Set the client hostname (recommended)
+
+Before creating the pool, set the client hostname. This helps MATLAB workers
+connect back to your client process reliably (especially in environments with
+multiple network interfaces).
+
+#+begin_src
+sethostname
+#+end_src
+
+*** Create the cluster pool
+
+For a half-node job on ~orfoz~, request a 56-task allocation and start a pool
+with 56 workers.
+
+#+begin_src matlab
+pool = parpool(c, 56)
+#+end_src
+
+Show the screenshot here.
+
+#+attr_html: :width 900px
+#+caption: Creating a cluster-backed parallel pool on orfoz.
+[[file:2_a.png]]
+
+At this point, a Slurm job is submitted in the background and the pool becomes
+available. After the pool is connected, you can run your code exactly as if you
+were working in a regular MATLAB session.
+
+*** Run the demo code
+
+#+begin_src matlab
+parfor_demo
+#+end_src
+
+Show the screenshot here.
+
+#+attr_html: :width 900px
+#+caption: Running ~parfor_demo~ using the active cluster pool.
+[[file:2_b.png]]
+
+*** Close the pool (release resources)
+
+When you are finished, delete the pool to release the Slurm allocation and
+compute resources.
+
+#+begin_src matlab
+delete(pool)   % equivalent to: pool.delete
+#+end_src
+
+
+ 
+
+
+
+** Submitting via a Slurm Batch Script (Recommended HPC Method)
+
+This method runs MATLAB entirely inside a Slurm allocation.
+Slurm allocates the CPU resources, and MATLAB creates a local
+parallel pool that uses those allocated cores.
+
+This is the most robust and recommended approach for production workloads.
+
+*** MATLAB Script (run_parfor.m)
+
+Create the following file in your working directory:
+
+#+begin_src matlab
+% run_parfor.m
+
+% Read number of workers from environment variable
+n = str2double(getenv("NUM_WORKERS"));
+
+% Start a local parallel pool using allocated CPUs
+parpool('local', n);
+
+% Run the demo function
+parfor_demo();
+
+% Clean up the pool
+delete(gcp('nocreate'));
+#+end_src
+
+Explanation:
+
+- ~NUM_WORKERS~ is passed from Slurm.
+- ~parpool('local', n)~ starts workers using the CPUs already allocated.
+- No Slurm plugin or cluster profile is used.
+- The pool is deleted at the end to release resources cleanly.
+
+*** Slurm Script (submit_parfor.sh)
+
+#+begin_src bash
+#!/bin/bash
+#SBATCH -J matlab-parfor
+#SBATCH -A sbilmis
+#SBATCH -p orfoz
+#SBATCH -N 1
+#SBATCH --ntasks=56
+#SBATCH --cpus-per-task=1
+#SBATCH -t 0-00:30
+#SBATCH -o matlab-parfor_%j.out
+#SBATCH -e matlab-parfor_%j.err
+
+module load apps/matlab/r2025b
+
+# Use one task for MATLAB client, remaining for workers
+export NUM_WORKERS=$((SLURM_NTASKS - 1))
+
+matlab -batch "run('run_parfor.m')"
+#+end_src
+
+Key points:
+
+- ~--ntasks=56~ reserves 56 CPU cores on ~orfoz~.
+- One core runs the main MATLAB process.
+- 55 cores are used as parallel workers.
+- ~NUM_WORKERS~ is computed automatically from ~SLURM_NTASKS~.
+- If ~--ntasks~ changes, worker count adjusts automatically.
+
+*** Submitting the Job
+
+#+begin_src bash
+sbatch submit_parfor.sh
+#+end_src
+
+Monitor job status:
+
+#+begin_src bash
+squeue -u sbilmis
+#+end_src
+
+*** Output File
+
+After completion, inspect:
+
+#+begin_src bash
+cat matlab-parfor_<jobid>.out
+#+end_src
+
+Example output:
+
+#+begin_example
+
+	Sponsored License -- for use in support of a program or activity sponsored by MathWorks.
+	Not for government, commercial or other non-sponsored organizational use.
+
+Starting parallel pool (parpool) using the 'Processes' profile ...
+Connected to parallel pool with 55 workers.
+parfor_demo: N=55, elapsed=1.29 s
+Parallel pool using the 'Processes' profile is shutting down.
+#+end_example
+
+
+
+
+
+
+
+
+** Running MATLAB via Open OnDemand (Interactive Desktop)
+
+Open OnDemand allows users to launch a graphical desktop session
+on TRUBA compute nodes through a web browser. This is equivalent
+to running an interactive Slurm job.
+
+In this mode, Slurm allocates the resources first, and MATLAB runs
+inside that allocation.
+
+---
+
+*** Step 1: Launch Desktop Session
+
+1. Log in to Open OnDemand.
+2. Select *Interactive Apps → Desktop*.
+3. Choose the following parameters:
+
+   - Desktop Environment: xfce
+   - Partition: orfoz
+   - Time limit: 1 hour
+   - Account: sbilmis
+
+4. Click *Launch*.
+
+#+attr_html: :width 900px
+#+caption: Open OnDemand Desktop launch configuration (orfoz partition).
+[[file:images/ood_desktop_launch.png]]
+
+---
+
+*** Step 2: Open Terminal
+
+Once the desktop loads:
+
+1. Right-click on the desktop
+2. Select *Open Terminal Here*
+
+#+attr_html: :width 700px
+#+caption: Opening a terminal inside the interactive desktop session.
+[[file:images/ood_open_terminal.png]]
+
+---
+
+*** Step 3: Load MATLAB Module
+
+In the terminal:
+
+#+begin_src bash
+module purge
+module load apps/matlab/r2025b
+matlab
+#+end_src
+
+#+attr_html: :width 900px
+#+caption: Loading MATLAB module inside Open OnDemand desktop.
+[[file:images/ood_terminal_module.png]]
+
+---
+*** Step 4: Submit Job Using batch()
+
+Instead of running ~parpool~ interactively, we submit the job
+using the TRUBA cluster profile. This allows the job to continue
+running even after MATLAB is closed.
+
+Inside the MATLAB command window:
+
+#+begin_src matlab
+c = parcluster;
+
+c.AdditionalProperties.Partition = 'orfoz';
+c.AdditionalProperties.NumNodes  = 1;
+c.AdditionalProperties.WallTime  = '0-00:30';
+
+j = batch(c, @parfor_demo, 1, {}, ...
+    'Pool', 55, ...
+    'CurrentFolder', '/arf/scratch/sbilmis', ...
+    'AutoAddClientPath', false);
+
+# or one line
+j = batch(c, @parfor_demo, 1, {}, 'Pool', 55, 'CurrentFolder', '/arf/scratch/sbilmis', 'AutoAddClientPath', false);
+
+    #+end_src
+
+
+Explanation:
+
+- ~Pool = 55~ results in 56 Slurm tasks (55 workers + 1 client).
+- ~CurrentFolder~ specifies where the function exists on TRUBA.
+- The job is now managed entirely by Slurm.
+- You may safely close MATLAB after submission.
+
+#+attr_html: :width 900px
+#+caption: Submitting parfor_demo using batch() inside Open OnDemand.
+[[file:ood_batch_submit.png]]
+
+---
+
+*** Step 5: Close MATLAB (Optional)
+
+After submission, you may close MATLAB and even close
+the Open OnDemand desktop session.
+
+The job continues running on TRUBA.
+
+---
+
+*** Step 6: Monitor Job from Terminal
+
+From any login node:
+
+#+begin_src bash
+squeue -u sbilmis
+#+end_src
+
+To check detailed job information:
+
+#+begin_src bash
+scontrol show job <jobid>
+#+end_src
+
+
+#+attr_html: :width 900px
+#+caption: Monitoring submitted MATLAB job via squeue.
+[[file:ood_squeue.png]]
+
+
+---
+
+*** Step 7: Retrieve Output Without MATLAB
+
+Cluster profile jobs store results under:
+
+#+begin_example
+/arf/home/sbilmis/.matlab/generic_cluster_jobs/truba/
+#+end_example
+
+List jobs:
+
+#+begin_src bash
+ls /arf/home/sbilmis/.matlab/generic_cluster_jobs/truba/
+#+end_src
+
+Each job has a folder:
+
+#+begin_example
+Job1/
+Job2/
+Job3/
+#+end_example
+
+To read printed output (diary):
+
+#+begin_src bash
+cat /arf/home/sbilmis/.matlab/generic_cluster_jobs/truba/JobX/diary
+#+end_src
+
+Example output:
+
+#+begin_example
+parfor_demo: N=55, elapsed=1.83 s
+#+end_example
+
+#+begin_example
+📘 sbilmis@arf-ui1  ~$ grep "parfor_demo:" ~/.matlab/generic_cluster_jobs/truba/Job3/Task*.diary.txt
+/arf/home/sbilmis/.matlab/generic_cluster_jobs/truba/Job3/Task1.diary.txt:parfor_demo: N=55, elapsed=1.89 s
+#+end_example
+
+
+---
+
+*** Step 8: (Optional) Retrieve Output Later in MATLAB
+
+If you reopen MATLAB later, you can recover the job object:
+
+#+begin_src matlab
+c = parcluster;
+jobs = c.Jobs;
+j = jobs(end);
+t = fetchOutputs(j);
+#+end_src
+
+This allows retrieval of returned variables without rerunning the job.
+
+
+* Further Reading
+
+To learn more about MATLAB Parallel Computing Toolbox,
+the following official MathWorks resources may be helpful:
+
+- [[https://www.mathworks.com/products/parallel-computing/index.html][Parallel Computing Overview]]
+- [[https://www.mathworks.com/help/parallel-computing/][Parallel Computing Documentation]]
+- [[https://www.mathworks.com/help/parallel-computing/examples.html][Parallel Computing Coding Examples]]
+- [[https://www.mathworks.com/products/parallel-computing/tutorials.html][Parallel Computing Tutorials]]
+- [[https://www.mathworks.com/products/parallel-computing/videos.html][Parallel Computing Videos]]
+- [[https://www.mathworks.com/products/parallel-computing/webinars.html][Parallel Computing Webinars]]
+
+These resources cover general usage of parallel computing within MATLAB and are not specific to TRUBA cluster configuration.
+
+
+
+* Quick Reference (Cheatsheet)
 
 You tell MATLAB how to "book" your resources using the =AdditionalProperties= command. Here is the minimal set you should always define:
 
@@ -1098,7 +2084,7 @@ Examples that are likely to fail:
 
 
 
-** Example: Parallel Batch Jobs: Scaling Up Your Code          :nottestedyet:
+** Example: Parallel Batch Jobs: Scaling Up Your Code              :noexport:
  While "Serial" jobs run on one CPU, a **Parallel Batch Job** allows you to use multiple CPUs (Workers) at the same time. This is the best way to speed up heavy simulations or data processing.
 
 *** The Example Script
@@ -1142,6 +2128,7 @@ c.AdditionaProperties.WallTime = '0-00:10'
 % We are asking for 16 simulations ({16}) to be split among them
 job = c.batch(@parallel_example, 1, {16}, 'CurrentFolder', '.', 'Pool', 4);
  #+end_src
+
 
 *** Important: The "N+1" Rule
  When you ask for a Pool of **4**, MATLAB actually requests **5** CPU cores from TRUBA.
@@ -1198,509 +2185,6 @@ job = c.batch(@parallel_example, 1, {16}, 'CurrentFolder', '.', 'Pool', 4);
 
 
 
-
-
-* Advanced: Interactive Parallel Jobs from MATLAB on the Desktop
-
-This section describes how to launch a parallel pool on TRUBA directly
-from MATLAB running on your personal computer.
-
-This workflow is recommended only for advanced users who need
-interactive development while using cluster resources.
-
-**Important:** This mode requires proper network configuration
-between your computer and TRUBA worker nodes.
-
----
-
-**Prerequisites**
-
-To run an interactive pool job launched from your desktop onto TRUBA,
-the following conditions must be satisfied:
-
-1. You must be connected to the institutional VPN.
-2. TCP port 27370 must be open for inbound traffic on your machine.
-3. MATLAB must advertise your VPN private IP address to worker nodes.
-
-To configure the hostname inside MATLAB:
-
-#+begin_src matlab
-sethostname
-#+end_src
-
-Expected output:
-
-#+begin_src matlab
-Found private IP address.  Setting hostname: 10.x.x.x
-#+end_src
-
-This command must be executed every time MATLAB is restarted.
-Alternatively, add it to your `startup.m` file.
-
-If your firewall blocks communication, you may see an error such as:
-
-"Check whether a firewall is blocking communication between the worker machines and the MATLAB client machine."
-
----
-
-**Starting a Parallel Pool on TRUBA**
-
-#+begin_src matlab
-% Get cluster profile
-c = parcluster;
-
-% Start 28 workers (example)
-pool = c.parpool(28);
-#+end_src
-
-Explanation:
-
-- `parcluster` connects MATLAB to the TRUBA cluster profile.
-- `parpool(28)` submits a Slurm job that allocates 28 workers.
-- Workers may span multiple nodes depending on scheduler decisions.
-
-The pool remains active until explicitly deleted.
-
----
-
-** Interactive Parallel Work
-Instead of running a local pool on your own computer, your code can now run across multiple nodes on the TRUBA cluster simultaneously.
-
-#+begin_src matlab
-% Single-line test: Measure time to generate 1,000 numbers and display the sum
-tic; parfor idx = 1:1000, a(idx) = rand; end; result = sum(a), toc
-#+end_src
-
-
-
-** Closing the Pool
-When you are finished with your parallel tasks, it is a good practice to shut down the pool to free up cluster resources:
-
-#+begin_src matlab
-delete(gcp('nocreate'))
-#+end_src
-
-** TRUBA Resource Constraints (Important)
-
-Desktop-based interactive pools do not bypass TRUBA scheduling rules.
-
-Even when launching pools from MATLAB on your desktop,
-all TRUBA partition constraints still apply.
-
-The pool creation command internally submits a Slurm job.
-If resource limits are violated, the job submission will fail.
-
-Common error messages include:
-
-#+begin_src text
-sbatch: error: Orfoz kuyruguna gonderilen isleride node basina 56/112 cekirdek talep ediniz.
-sbatch: error: Batch job submission failed: Requested time limit is invalid (missing or exceeds some limit)
-#+end_src
-
-These errors indicate that your requested configuration does not satisfy partition limits. See the above section for setting these parameters.
-
-Typical causes:
-
-- Requesting more workers than allowed per node
-- Exceeding maximum walltime
-- Using incorrect partition
-- Not specifying required time limit
-
-Before adjusting `parpool(N)`, verify:
-
-- The partition you are using
-- Maximum cores allowed per node
-- Maximum allowed walltime
-- Whether multi-node execution is permitted
-
-Always ensure that:
-
-  requested workers ≤ allowed cores per node
-
-If necessary, reduce the pool size or adjust it according to the cluster rules:
-
-#+begin_src matlab
-pool = c.parpool(56);
-#+end_src
-
-or adjust cluster profile settings as documented earlier.
-
-
-**Simple Numerical Example**
-
-#+begin_src matlab
-tic;
-R = zeros(1,280);
-parfor i = 1:280
-    R(i) = sum(svd(rand(400)));
-end
-toc;
-mean(R)
-#+end_src
-
-Explanation:
-
-- 280 iterations ensure sufficient work per worker.
-- Each iteration computes singular values of a random 400x400 matrix.
-- `mean(R)` provides numerical output.
-- `tic/toc` measures elapsed wall time.
-
-To compare with serial execution:
-
-#+begin_src matlab
-tic;
-for i = 1:280
-    sum(svd(rand(400)));
-end
-toc
-#+end_src
-
-Parallel execution should show noticeable speedup for sufficiently large workloads.
-
----
-
-**Understanding Overhead**
-
-When you call `parpool`, MATLAB:
-
-- Submits a Slurm job
-- Allocates nodes
-- Starts worker MATLAB processes
-- Performs license checks
-- Establishes TCP connections
-- Synchronizes the environment
-
-This startup phase can take from tens of seconds to several minutes.
-
-If the actual computation is small (e.g., `parfor i=1:10, rand; end`),
-startup overhead dominates and parallel execution may appear slow.
-
-Parallel computing is beneficial only when:
-
-  computation time  >>  startup and communication overhead
-
----
-
-**Monitoring Jobs**
-
-When a pool is active, MATLAB Job Monitor shows:
-
-  Description: Interactive pool
-  State: running
-
-This indicates that workers are allocated and idle or ready.
-
-It does NOT necessarily mean that a `parfor` loop is currently executing.
-
-As long as the pool is open, cluster resources remain allocated.
-
-** Opening Job Monitor
-
-To view active pools and cluster jobs, open:
-
-Parallel → Monitor Jobs
-
-#+CAPTION: Opening the Job Monitor from the MATLAB Parallel menu.
-#+NAME: fig:open_job_monitor
-[[file:images/open_job_monitor.png]]
-
----
-
-** Example: Job Monitor Window
-
-#+CAPTION: MATLAB Job Monitor showing running and finished jobs.
-#+NAME: fig:job_monitor_window
-[[file:images/job_monitor_window.png]]
-
-In this window:
-
-- *Description: Interactive pool* indicates that a parallel pool is active.
-- *State: running* means that worker processes are allocated.
-- This does **not** necessarily mean that a `parfor` loop is currently executing.
-
-As long as the pool remains open, cluster resources stay allocated.
-
-
----
-
-**Closing the Pool**
-
-Always delete the pool after finishing:
-
-#+begin_src matlab
-delete(gcp)
-#+end_src
-
-Failing to close the pool wastes compute resources.
-
-Idle pools may be terminated automatically after a timeout
-(currently ~30 minutes of inactivity; subject to change).
-
----
-
-**Best Practice Recommendation**
-
-- Use this mode for interactive development only.
-- For production runs, use batch submission (`sbatch`).
-- If working inside an OnDemand desktop session, prefer a local pool
-  (`parpool('local',N)`) instead of submitting a second cluster job.
-
-
-
-
-
-
-* TRUBA MATLAB Helper Functions
-
-TRUBA provides several helper functions that simplify interaction
-with Slurm and cluster resources from within MATLAB.
-
-These functions are optional but strongly recommended
-for advanced usage and troubleshooting.
-
-| Function              | Description                                    | Notes                                     |
-|-----------------------+------------------------------------------------+-------------------------------------------|
-| clusterFeatures       | Lists cluster features and node constraints    | Useful for understanding partition limits |
-| clusterGpuCards       | Lists available GPU models on TRUBA            | Use before requesting GPU resources       |
-| clusterPartitionNames | Lists available Slurm partitions/queues        | Verify before setting profile             |
-| fixConnection         | Reestablishes cluster connection               | Applicable only for Desktop mode          |
-| seff                  | Displays Slurm efficiency statistics for a job | Similar to Linux `seff` command           |
-| willRun               | Explains why a job is queued                   | Helps diagnose scheduling issues          |
-
----
-
-**Example Usage**
-
-#+begin_src matlab
-clusterPartitionNames
-#+end_src
-
-Lists available TRUBA partitions.
-
-#+begin_src matlab
-clusterFeatures
-#+end_src
-
-Displays node-level constraints such as maximum cores per node.
-
-#+begin_src matlab
-seff(326528)
-#+end_src
-
-Displays efficiency statistics for the given Slurm job ID.
-
-#+begin_src matlab
-willRun(326528)
-#+end_src
-
-Explains why a job is currently queued.
-
-#+begin_src matlab
-fixConnection
-#+end_src
-
-Useful after reconnecting to VPN if desktop pools fail.
-
-
-* Troubleshooting and Debugging
-
-When a job fails or behaves unexpectedly, MATLAB provides
-tools to retrieve log files and scheduler information.
-
----
-
-**Retrieving Debug Logs**
-
-If a serial or batch job produces an error,
-use the `getDebugLog` method to view the error log.
-
-For independent jobs (multiple tasks):
-
-#+begin_src matlab
-c.getDebugLog(job.Tasks)
-#+end_src
-
-For pool jobs:
-
-#+begin_src matlab
-c.getDebugLog(job)
-#+end_src
-
-The debug log contains detailed error messages generated
-by MATLAB workers on TRUBA.
-
----
-
-**Retrieving Scheduler Job ID**
-
-Cluster administrators may request the Slurm job ID
-for troubleshooting purposes.
-
-You can obtain the scheduler ID by calling:
-
-#+begin_src matlab
-job.getTaskSchedulerIDs()
-#+end_src
-
-Example output:
-
-#+begin_src matlab
-ans =
-    25539
-#+end_src
-
-This number corresponds to the Slurm job ID
-visible via `squeue` or `sacct` on TRUBA.
-
-
-** Licensing Issues
-
-MATLAB jobs running on TRUBA require valid licenses for:
-- MATLAB
-- Parallel Computing Toolbox (for pool jobs / parpool / batch with Pool)
-
-Symptoms of licensing problems may include:
-- Job fails immediately after submission
-- Workers cannot start
-- parpool hangs or reports license checkout failures
-
-*** Check license availability (local MATLAB)
-
-#+begin_src matlab
-license('test','Distrib_Computing_Toolbox')
-#+end_src
-
-Return value:
-- 1  -> toolbox license available
-- 0  -> not available
-
-#+begin_src matlab
-license('inuse')
-#+end_src
-
-*** Check license status on TRUBA (if permitted)
-
-#+begin_src bash
-lmstat -a
-#+end_src
-
-If you cannot access license tools on TRUBA, include the Slurm job ID and job debug logs
-when contacting TRUBA support (see: Retrieving Debug Logs / Retrieving Scheduler Job ID).
-
-
-
-* Further Reading
-
-To learn more about MATLAB Parallel Computing Toolbox,
-the following official MathWorks resources may be helpful:
-
-- [[https://www.mathworks.com/products/parallel-computing/index.html][Parallel Computing Overview]]
-- [[https://www.mathworks.com/help/parallel-computing/][Parallel Computing Documentation]]
-- [[https://www.mathworks.com/help/parallel-computing/examples.html][Parallel Computing Coding Examples]]
-- [[https://www.mathworks.com/products/parallel-computing/tutorials.html][Parallel Computing Tutorials]]
-- [[https://www.mathworks.com/products/parallel-computing/videos.html][Parallel Computing Videos]]
-- [[https://www.mathworks.com/products/parallel-computing/webinars.html][Parallel Computing Webinars]]
-
-These resources cover general usage of parallel computing within MATLAB and are not specific to TRUBA cluster configuration.
-
-
-* Practical Examples                                               :noexport:
-
-This section provides complete examples using `.m` files
-that can be executed on TRUBA.
-
----
-
-**Example 1: Serial Batch Job from an .m File**
-
-Create a file named `serial_example.m`:
-
-#+begin_src matlab
-function result = serial_example(n)
-    result = 0;
-    for i = 1:n
-        result = result + sum(eig(rand(300)));
-    end
-end
-#+end_src
-
-Submit the job:
-
-#+begin_src matlab
-c = parcluster;
-job = c.batch(@serial_example, 1, {10});
-wait(job);
-out = fetchOutputs(job);
-result = out{1};
-delete(job);
-#+end_src
-
-This example runs entirely on a single worker.
-
----
-
-**Example 2: Parallel Batch Job from an .m File**
-
-Create `parallel_example.m`:
-
-#+begin_src matlab
-function total = parallel_example(n)
-    total = 0;
-    parfor i = 1:n
-        total = total + sum(svd(rand(400)));
-    end
-end
-#+end_src
-
-Submit with a pool:
-
-#+begin_src matlab
-c = parcluster;
-job = c.batch(@parallel_example, 1, {20}, 'Pool', 4);
-wait(job);
-out = fetchOutputs(job);
-total = out{1};
-delete(job);
-#+end_src
-
-Explanation:
-
-- `'Pool', 4` allocates 4 workers.
-- The `parfor` loop distributes iterations across workers.
-- Suitable for compute-intensive workloads.
-
----
-
-**Example 3: Interactive Parallel Test (Development Only)**
-
-#+begin_src matlab
-sethostname;
-pool = parpool(8);
-
-tic;
-parfor i = 1:100
-    A = eig(rand(500));
-end
-toc;
-
-delete(gcp);
-#+end_src
-
-Use interactive mode for testing only.
-For long-running workloads, prefer batch submission.
-
----
-
-**Example 4: Checking Job Efficiency**
-
-After job completion:
-
-#+begin_src matlab
-schedulerID = job.getTaskSchedulerIDs();
-seff(schedulerID)
-#+end_src
-
-This displays resource efficiency information from Slurm.
 
 
 
