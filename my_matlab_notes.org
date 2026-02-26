@@ -4,6 +4,7 @@
 #+options: toc:t num:t ^:nil
 #+startup: content
 
+sdgdl
 
 
 * Introduction
@@ -2113,6 +2114,7 @@ function [sim_t, A] = parallel_example(iter)
 end
  #+end_src
 
+
 *** Submitting a Parallel Job
  To run this script on the cluster using 4 workers, use the =Pool= argument.
 
@@ -2173,6 +2175,7 @@ job = c.batch(@parallel_example, 1, {16}, 'CurrentFolder', '.', 'Pool', 4);
  #+BEGIN_NOTE
  **Recommendation:** Start with a small pool (4 or 8) to test your code. Gradually increase the number of workers to find the "Sweet Spot" where your code runs fastest without wasting cluster resources.
  #+END_NOTE
+
 
 *** Alternative: The Graphical Job Monitor
  If you prefer not to use code to find your jobs, you can use the built-in GUI:

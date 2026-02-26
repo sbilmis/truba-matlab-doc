@@ -1,0 +1,2540 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+<!-- 2026-02-26 Thu 17:30 -->
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Parallel Computing with MATLAB on TRUBA HPC</title>
+<meta name="generator" content="Org mode" />
+<meta name="author" content="sbilmis" />
+<style type="text/css">
+ <!--/*--><![CDATA[/*><!--*/
+  .title  { text-align: center;
+             margin-bottom: .2em; }
+  .subtitle { text-align: center;
+              font-size: medium;
+              font-weight: bold;
+              margin-top:0; }
+  .todo   { font-family: monospace; color: red; }
+  .done   { font-family: monospace; color: green; }
+  .priority { font-family: monospace; color: orange; }
+  .tag    { background-color: #eee; font-family: monospace;
+            padding: 2px; font-size: 80%; font-weight: normal; }
+  .timestamp { color: #bebebe; }
+  .timestamp-kwd { color: #5f9ea0; }
+  .org-right  { margin-left: auto; margin-right: 0px;  text-align: right; }
+  .org-left   { margin-left: 0px;  margin-right: auto; text-align: left; }
+  .org-center { margin-left: auto; margin-right: auto; text-align: center; }
+  .underline { text-decoration: underline; }
+  #postamble p, #preamble p { font-size: 90%; margin: .2em; }
+  p.verse { margin-left: 3%; }
+  pre {
+    border: 1px solid #ccc;
+    box-shadow: 3px 3px 3px #eee;
+    padding: 8pt;
+    font-family: monospace;
+    overflow: auto;
+    margin: 1.2em;
+  }
+  pre.src {
+    position: relative;
+    overflow: auto;
+    padding-top: 1.2em;
+  }
+  pre.src:before {
+    display: none;
+    position: absolute;
+    background-color: white;
+    top: -10px;
+    right: 10px;
+    padding: 3px;
+    border: 1px solid black;
+  }
+  pre.src:hover:before { display: inline; margin-top: 14px;}
+  /* Languages per Org manual */
+  pre.src-asymptote:before { content: 'Asymptote'; }
+  pre.src-awk:before { content: 'Awk'; }
+  pre.src-C:before { content: 'C'; }
+  /* pre.src-C++ doesn't work in CSS */
+  pre.src-clojure:before { content: 'Clojure'; }
+  pre.src-css:before { content: 'CSS'; }
+  pre.src-D:before { content: 'D'; }
+  pre.src-ditaa:before { content: 'ditaa'; }
+  pre.src-dot:before { content: 'Graphviz'; }
+  pre.src-calc:before { content: 'Emacs Calc'; }
+  pre.src-emacs-lisp:before { content: 'Emacs Lisp'; }
+  pre.src-fortran:before { content: 'Fortran'; }
+  pre.src-gnuplot:before { content: 'gnuplot'; }
+  pre.src-haskell:before { content: 'Haskell'; }
+  pre.src-hledger:before { content: 'hledger'; }
+  pre.src-java:before { content: 'Java'; }
+  pre.src-js:before { content: 'Javascript'; }
+  pre.src-latex:before { content: 'LaTeX'; }
+  pre.src-ledger:before { content: 'Ledger'; }
+  pre.src-lisp:before { content: 'Lisp'; }
+  pre.src-lilypond:before { content: 'Lilypond'; }
+  pre.src-lua:before { content: 'Lua'; }
+  pre.src-matlab:before { content: 'MATLAB'; }
+  pre.src-mscgen:before { content: 'Mscgen'; }
+  pre.src-ocaml:before { content: 'Objective Caml'; }
+  pre.src-octave:before { content: 'Octave'; }
+  pre.src-org:before { content: 'Org mode'; }
+  pre.src-oz:before { content: 'OZ'; }
+  pre.src-plantuml:before { content: 'Plantuml'; }
+  pre.src-processing:before { content: 'Processing.js'; }
+  pre.src-python:before { content: 'Python'; }
+  pre.src-R:before { content: 'R'; }
+  pre.src-ruby:before { content: 'Ruby'; }
+  pre.src-sass:before { content: 'Sass'; }
+  pre.src-scheme:before { content: 'Scheme'; }
+  pre.src-screen:before { content: 'Gnu Screen'; }
+  pre.src-sed:before { content: 'Sed'; }
+  pre.src-sh:before { content: 'shell'; }
+  pre.src-sql:before { content: 'SQL'; }
+  pre.src-sqlite:before { content: 'SQLite'; }
+  /* additional languages in org.el's org-babel-load-languages alist */
+  pre.src-forth:before { content: 'Forth'; }
+  pre.src-io:before { content: 'IO'; }
+  pre.src-J:before { content: 'J'; }
+  pre.src-makefile:before { content: 'Makefile'; }
+  pre.src-maxima:before { content: 'Maxima'; }
+  pre.src-perl:before { content: 'Perl'; }
+  pre.src-picolisp:before { content: 'Pico Lisp'; }
+  pre.src-scala:before { content: 'Scala'; }
+  pre.src-shell:before { content: 'Shell Script'; }
+  pre.src-ebnf2ps:before { content: 'ebfn2ps'; }
+  /* additional language identifiers per "defun org-babel-execute"
+       in ob-*.el */
+  pre.src-cpp:before  { content: 'C++'; }
+  pre.src-abc:before  { content: 'ABC'; }
+  pre.src-coq:before  { content: 'Coq'; }
+  pre.src-groovy:before  { content: 'Groovy'; }
+  /* additional language identifiers from org-babel-shell-names in
+     ob-shell.el: ob-shell is the only babel language using a lambda to put
+     the execution function name together. */
+  pre.src-bash:before  { content: 'bash'; }
+  pre.src-csh:before  { content: 'csh'; }
+  pre.src-ash:before  { content: 'ash'; }
+  pre.src-dash:before  { content: 'dash'; }
+  pre.src-ksh:before  { content: 'ksh'; }
+  pre.src-mksh:before  { content: 'mksh'; }
+  pre.src-posh:before  { content: 'posh'; }
+  /* Additional Emacs modes also supported by the LaTeX listings package */
+  pre.src-ada:before { content: 'Ada'; }
+  pre.src-asm:before { content: 'Assembler'; }
+  pre.src-caml:before { content: 'Caml'; }
+  pre.src-delphi:before { content: 'Delphi'; }
+  pre.src-html:before { content: 'HTML'; }
+  pre.src-idl:before { content: 'IDL'; }
+  pre.src-mercury:before { content: 'Mercury'; }
+  pre.src-metapost:before { content: 'MetaPost'; }
+  pre.src-modula-2:before { content: 'Modula-2'; }
+  pre.src-pascal:before { content: 'Pascal'; }
+  pre.src-ps:before { content: 'PostScript'; }
+  pre.src-prolog:before { content: 'Prolog'; }
+  pre.src-simula:before { content: 'Simula'; }
+  pre.src-tcl:before { content: 'tcl'; }
+  pre.src-tex:before { content: 'TeX'; }
+  pre.src-plain-tex:before { content: 'Plain TeX'; }
+  pre.src-verilog:before { content: 'Verilog'; }
+  pre.src-vhdl:before { content: 'VHDL'; }
+  pre.src-xml:before { content: 'XML'; }
+  pre.src-nxml:before { content: 'XML'; }
+  /* add a generic configuration mode; LaTeX export needs an additional
+     (add-to-list 'org-latex-listings-langs '(conf " ")) in .emacs */
+  pre.src-conf:before { content: 'Configuration File'; }
+
+  table { border-collapse:collapse; }
+  caption.t-above { caption-side: top; }
+  caption.t-bottom { caption-side: bottom; }
+  td, th { vertical-align:top;  }
+  th.org-right  { text-align: center;  }
+  th.org-left   { text-align: center;   }
+  th.org-center { text-align: center; }
+  td.org-right  { text-align: right;  }
+  td.org-left   { text-align: left;   }
+  td.org-center { text-align: center; }
+  dt { font-weight: bold; }
+  .footpara { display: inline; }
+  .footdef  { margin-bottom: 1em; }
+  .figure { padding: 1em; }
+  .figure p { text-align: center; }
+  .equation-container {
+    display: table;
+    text-align: center;
+    width: 100%;
+  }
+  .equation {
+    vertical-align: middle;
+  }
+  .equation-label {
+    display: table-cell;
+    text-align: right;
+    vertical-align: middle;
+  }
+  .inlinetask {
+    padding: 10px;
+    border: 2px solid gray;
+    margin: 10px;
+    background: #ffffcc;
+  }
+  #org-div-home-and-up
+   { text-align: right; font-size: 70%; white-space: nowrap; }
+  textarea { overflow-x: auto; }
+  .linenr { font-size: smaller }
+  .code-highlighted { background-color: #ffff00; }
+  .org-info-js_info-navigation { border-style: none; }
+  #org-info-js_console-label
+    { font-size: 10px; font-weight: bold; white-space: nowrap; }
+  .org-info-js_search-highlight
+    { background-color: #ffff00; color: #000000; font-weight: bold; }
+  .org-svg { width: 90%; }
+  /*]]>*/-->
+</style>
+<script type="text/javascript">
+// @license magnet:?xt=urn:btih:1f739d935676111cfff4b4693e3816e664797050&amp;dn=gpl-3.0.txt GPL-v3-or-Later
+<!--/*--><![CDATA[/*><!--*/
+     function CodeHighlightOn(elem, id)
+     {
+       var target = document.getElementById(id);
+       if(null != target) {
+         elem.classList.add("code-highlighted");
+         target.classList.add("code-highlighted");
+       }
+     }
+     function CodeHighlightOff(elem, id)
+     {
+       var target = document.getElementById(id);
+       if(null != target) {
+         elem.classList.remove("code-highlighted");
+         target.classList.remove("code-highlighted");
+       }
+     }
+    /*]]>*///-->
+// @license-end
+</script>
+</head>
+<body>
+<div id="content">
+<h1 class="title">Parallel Computing with MATLAB on TRUBA HPC</h1>
+<div id="table-of-contents">
+<h2>Table of Contents</h2>
+<div id="text-table-of-contents">
+<ul>
+<li><a href="#org7784202">1. Introduction</a></li>
+<li><a href="#org15a1ab5">2. Tested Environment</a></li>
+<li><a href="#orgc87e75c">3. Prerequisites &amp; Licensing</a>
+<ul>
+<li><a href="#org6318575">3.1. Licensing and Policy</a></li>
+<li><a href="#orgb71e117">3.2. What This Means in Practice</a></li>
+</ul>
+</li>
+<li><a href="#org1bb5001">4. Choosing Your Workflow</a></li>
+<li><a href="#org40fe958">5. Method A — Open OnDemand (Interactive GUI)</a>
+<ul>
+<li><a href="#org750d7a9">5.1. Connecting to the ARF Cluster</a></li>
+<li><a href="#org638056e">5.2. Starting MATLAB in the Desktop Session</a></li>
+<li><a href="#org0cff41b">5.3. Introducing MATLAB to the Cluster</a></li>
+<li><a href="#org5256305">5.4. Alternative: Launching MATLAB Without the GUI</a></li>
+<li><a href="#orgd532fa8">5.5. The "Validate" Button</a></li>
+<li><a href="#org5e029b0">5.6. Connecting to the CUDA Cluster</a></li>
+<li><a href="#orgb7b7575">5.7. Next Steps</a></li>
+</ul>
+</li>
+<li><a href="#org6287e44">6. Method B — Submit from Your Local MATLAB</a>
+<ul>
+<li><a href="#org2d1225d">6.1. One-Time Setup</a>
+<ul>
+<li><a href="#org4243c1b">6.1.1. Step 1: Verify Your User Path</a></li>
+<li><a href="#org527a418">6.1.2. Step 2: Install the TRUBA Cluster Plugin</a></li>
+<li><a href="#org9e226a8">6.1.3. Step 3: ARF and CUDA Cluster Profiles</a></li>
+</ul>
+</li>
+<li><a href="#orge3cba0d">6.2. Switching Between Your Computer and the Cluster</a></li>
+<li><a href="#org1b1813e">6.3. Next Steps</a></li>
+</ul>
+</li>
+<li><a href="#org76c2042">7. Method C — Slurm Batch Script</a>
+<ul>
+<li><a href="#org6aad72f">7.1. What You Need</a></li>
+<li><a href="#org6bd8caa">7.2. Step 1: Write Your MATLAB Script</a></li>
+<li><a href="#orgde252cb">7.3. Step 2: Write Your Slurm Script</a></li>
+<li><a href="#orgfadb761">7.4. Step 3: Submit and Monitor Your Job</a></li>
+<li><a href="#org76701bb">7.5. Next Steps</a></li>
+</ul>
+</li>
+<li><a href="#orgdc3bbc7">8. Configuring and Submitting Jobs</a>
+<ul>
+<li><a href="#orgda59baa">8.1. The Three Things You Must Set</a></li>
+<li><a href="#orgae4a229">8.2. Listing Available Partitions</a></li>
+<li><a href="#org66bccbb">8.3. Saving and Modifying Settings</a></li>
+<li><a href="#org11b87b4">8.4. Submitting a Job</a></li>
+<li><a href="#orgd1ec132">8.5. The Pool+1 Rule</a></li>
+<li><a href="#orged93c38">8.6. Partition Reference: CPU Partitions</a>
+<ul>
+<li><a href="#org996c2e2">8.6.1. Core Count Rules</a></li>
+</ul>
+</li>
+<li><a href="#org43960f3">8.7. Partition Reference: GPU Partitions</a>
+<ul>
+<li><a href="#orge9efbb8">8.7.1. GPU Request Rules</a></li>
+</ul>
+</li>
+<li><a href="#org05e3a8d">8.8. Memory Model</a></li>
+<li><a href="#orgbee7640">8.9. Monitoring and Retrieving Results</a>
+<ul>
+<li><a href="#org297be1f">8.9.1. While the Job is Running</a></li>
+<li><a href="#orgc835eac">8.9.2. Coming Back to a Completed Job</a></li>
+<li><a href="#org7c70a8c">8.9.3. Retrieving Results</a></li>
+<li><a href="#org09ec5f8">8.9.4. If the Job Failed</a></li>
+<li><a href="#org47e6760">8.9.5. Cleaning Up</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a href="#org6060117">9. Advanced: Interactive parpool from Desktop</a>
+<ul>
+<li><a href="#orgcfa37b6">9.1. Setting Up the Connection</a></li>
+<li><a href="#orgc209a10">9.2. Starting a Parallel Pool on TRUBA</a></li>
+<li><a href="#org23f4bc0">9.3. Running Code Interactively</a></li>
+<li><a href="#orga4fdbf4">9.4. Monitoring the Pool</a></li>
+<li><a href="#org67522ee">9.5. Closing the Pool</a></li>
+<li><a href="#org5b77576">9.6. Troubleshooting</a></li>
+<li><a href="#org1b49727">9.7. Next Steps</a></li>
+</ul>
+</li>
+<li><a href="#org9e26d97">10. Helper Functions</a>
+<ul>
+<li><a href="#orgd145ee4">10.1. Usage</a></li>
+<li><a href="#org1df1b68">10.2. Interpreting seff Output</a></li>
+</ul>
+</li>
+<li><a href="#org3cbbead">11. Troubleshooting</a>
+<ul>
+<li><a href="#org599c302">11.1. Job Failed: Retrieving Debug Logs</a></li>
+<li><a href="#orgc2293e6">11.2. Retrieving the Slurm Job ID</a></li>
+<li><a href="#org29305f3">11.3. Licensing Issues</a>
+<ul>
+<li><a href="#org8ab62e3">11.3.1. Checking Your Local License</a></li>
+<li><a href="#org668dc31">11.3.2. Symptoms of a Licensing Problem</a></li>
+<li><a href="#org1270e41">11.3.3. If You Suspect a TRUBA-Side License Issue</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a href="#org6439944">12. Quick Reference</a>
+<ul>
+<li><a href="#org5c783c4">12.1. Essential Settings</a></li>
+<li><a href="#orgcb203e9">12.2. Submitting a Job</a></li>
+<li><a href="#orga2aa8eb">12.3. The Pool+1 Rule</a></li>
+<li><a href="#org2665c95">12.4. Monitoring and Retrieving Results</a></li>
+<li><a href="#orgaabb07d">12.5. Coming Back to a Completed Job</a></li>
+<li><a href="#orgfca3568">12.6. Saving Settings</a></li>
+<li><a href="#orgf58b69c">12.7. Example: CPU Job on <code>orfoz</code> (56-core half-node)</a></li>
+<li><a href="#org9448a7d">12.8. Example: GPU Job on <code>barbun-cuda</code> (2 GPUs, 40 CPUs)</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+
+
+
+<div id="outline-container-org7784202" class="outline-2">
+<h2 id="org7784202"><span class="section-number-2">1.</span> Introduction</h2>
+<div class="outline-text-2" id="text-1">
+<p>
+This document describes how to configure and use MATLAB on the TRUBA
+High-Performance Computing (HPC) infrastructure. It covers interactive
+execution, batch job submission via Slurm, and local MATLAB integration.
+TRUBA allows academic users to run heavy simulations faster using
+high-end CPUs and GPUs, handle datasets too large for a standard laptop,
+and run multiple MATLAB workers simultaneously to dramatically reduce
+computation time. This guide is intended for academic users of TRUBA.  
+</p>
+</div>
+</div>
+
+
+
+<div id="outline-container-org15a1ab5" class="outline-2">
+<h2 id="org15a1ab5"><span class="section-number-2">2.</span> Tested Environment</h2>
+<div class="outline-text-2" id="text-2">
+<div class="NOTE" id="org9106239">
+<p>
+<b>Note:</b> This documentation was validated under the following environment.
+Changes in MATLAB versions or Slurm settings may require minor adjustments.
+</p>
+
+</div>
+
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+
+
+<colgroup>
+<col  class="org-left" />
+
+<col  class="org-left" />
+</colgroup>
+<thead>
+<tr>
+<th scope="col" class="org-left">Component</th>
+<th scope="col" class="org-left">Version / Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="org-left">Cluster</td>
+<td class="org-left">TRUBA (arf and cuda)</td>
+</tr>
+
+<tr>
+<td class="org-left">Partitions Tested</td>
+<td class="org-left">debug</td>
+</tr>
+
+<tr>
+<td class="org-left">MATLAB</td>
+<td class="org-left">R2025b</td>
+</tr>
+
+<tr>
+<td class="org-left">License Model</td>
+<td class="org-left">Network Academic (MathWorks)</td>
+</tr>
+
+<tr>
+<td class="org-left">Slurm</td>
+<td class="org-left">23.02.5-1</td>
+</tr>
+
+<tr>
+<td class="org-left">OS</td>
+<td class="org-left">Rocky Linux 9</td>
+</tr>
+
+<tr>
+<td class="org-left">Test Date</td>
+<td class="org-left">2026-02-18</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+
+
+<div id="outline-container-orgc87e75c" class="outline-2">
+<h2 id="orgc87e75c"><span class="section-number-2">3.</span> Prerequisites &amp; Licensing</h2>
+<div class="outline-text-2" id="text-3">
+<p>
+Ensure you have these three requirements ready before proceeding:
+</p>
+
+<ul class="org-ul">
+<li><b>Active TRUBA Account:</b> A valid username and password.</li>
+<li><b>VPN Connection:</b> OpenVPN must be active to access the cluster.</li>
+<li><b>Academic Purpose:</b> MATLAB on TRUBA is strictly for academic research.
+Commercial/corporate use is not permitted.</li>
+</ul>
+</div>
+
+
+<div id="outline-container-org6318575" class="outline-3">
+<h3 id="org6318575"><span class="section-number-3">3.1.</span> Licensing and Policy</h3>
+<div class="outline-text-3" id="text-3-1">
+<p>
+TRUBA provides MATLAB under a sponsored <i>Network Academic</i> license.
+</p>
+
+<div class="IMPORTANT" id="orge431075">
+<p>
+<b>Important:</b> Only <i>academic</i> MATLAB usage is permitted on TRUBA compute resources.
+</p>
+
+</div>
+</div>
+</div>
+
+
+<div id="outline-container-orgb71e117" class="outline-3">
+<h3 id="orgb71e117"><span class="section-number-3">3.2.</span> What This Means in Practice</h3>
+<div class="outline-text-3" id="text-3-2">
+<p>
+How the license is handled depends on how you choose to work:
+</p>
+
+<ul class="org-ul">
+<li><b>Using Open OnDemand or Batch Mode:</b> If you run MATLAB directly on the
+TRUBA cluster (via your web browser or a batch script), the license is
+provided and managed automatically on the cluster side. You do not need
+to provide your own.</li>
+
+<li><b>Using MATLAB on your Personal Computer:</b> If you write code in your local
+MATLAB and submit jobs to TRUBA using the cluster plugin, your local
+installation <b>must</b> be an <i>academic</i> license. If you use a commercial or
+trial license on your laptop, the remote execution will be blocked.</li>
+</ul>
+
+<div class="TIP" id="orge60b7d7">
+<p>
+<b>Not sure if your license is Academic?</b>
+Open MATLAB on your computer and type <code>license</code> in the Command Window.
+If you are still unsure, contact your university's software coordinator
+or IT department.
+</p>
+
+</div>
+</div>
+</div>
+</div>
+
+
+<div id="outline-container-org1bb5001" class="outline-2">
+<h2 id="org1bb5001"><span class="section-number-2">4.</span> Choosing Your Workflow</h2>
+<div class="outline-text-2" id="text-4">
+<p>
+There are three supported methods for running MATLAB on TRUBA.
+Use the table below to decide which one suits your situation.
+</p>
+
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+
+
+<colgroup>
+<col  class="org-left" />
+
+<col  class="org-left" />
+
+<col  class="org-left" />
+</colgroup>
+<thead>
+<tr>
+<th scope="col" class="org-left">If you want to&#x2026;</th>
+<th scope="col" class="org-left">Use this method</th>
+<th scope="col" class="org-left">Difficulty</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="org-left">Work interactively with a full MATLAB GUI</td>
+<td class="org-left">Method A: Open OnDemand</td>
+<td class="org-left">Beginner</td>
+</tr>
+
+<tr>
+<td class="org-left">Write code locally and send jobs to the cluster</td>
+<td class="org-left">Method B: Local MATLAB + Plugin</td>
+<td class="org-left">Intermediate</td>
+</tr>
+
+<tr>
+<td class="org-left">Run production jobs entirely on the cluster</td>
+<td class="org-left">Method C: Slurm Batch Script</td>
+<td class="org-left">Intermediate</td>
+</tr>
+
+<tr>
+<td class="org-left">Develop interactively using cluster resources</td>
+<td class="org-left">Advanced: Interactive parpool</td>
+<td class="org-left">Advanced</td>
+</tr>
+</tbody>
+</table>
+
+<div class="NOTE" id="org4f09519">
+<p>
+<b>Not sure which to pick?</b> Start with <b>Method A (Open OnDemand)</b>. It
+requires no local configuration and gives you a full MATLAB interface
+directly in your browser. You can always switch to a more advanced
+method later.
+</p>
+
+</div>
+</div>
+</div>
+
+<div id="outline-container-org40fe958" class="outline-2">
+<h2 id="org40fe958"><span class="section-number-2">5.</span> Method A — Open OnDemand (Interactive GUI)</h2>
+<div class="outline-text-2" id="text-5">
+<p>
+This method allows you to use a full graphical MATLAB interface directly
+in your web browser via Open OnDemand. It is the best choice if you want
+to work interactively and requires no local MATLAB installation.
+</p>
+
+<div class="IMPORTANT" id="orgec6eb39">
+<p>
+<b>Rule:</b> You must launch MATLAB through Open OnDemand. Running MATLAB
+directly on login nodes is strictly prohibited and will be terminated.
+</p>
+
+</div>
+</div>
+
+
+<div id="outline-container-org750d7a9" class="outline-3">
+<h3 id="org750d7a9"><span class="section-number-3">5.1.</span> Connecting to the ARF Cluster</h3>
+<div class="outline-text-3" id="text-5-1">
+<ol class="org-ol">
+<li>Connect to <b>TRUBA OpenVPN</b>.</li>
+<li>Open your browser and go to: <a href="https://172.16.6.20">https://172.16.6.20</a></li>
+<li>Log in with your TRUBA username and password.</li>
+<li>From the dashboard, click on <b>Interactive Apps</b> and select <b>Desktop</b>.</li>
+</ol>
+
+<p>
+For detailed connection instructions refer to: <a href="https://docs.truba.gov.tr">https://docs.truba.gov.tr</a>
+</p>
+
+
+<div id="org96a0a6d" class="figure">
+<p><img src="images/arf_ood_dashboard.png" alt="arf_ood_dashboard.png" />
+</p>
+<p><span class="figure-number">Figure 1: </span>Open OnDemand dashboard for ARF cluster</p>
+</div>
+</div>
+</div>
+
+
+<div id="outline-container-org638056e" class="outline-3">
+<h3 id="org638056e"><span class="section-number-3">5.2.</span> Starting MATLAB in the Desktop Session</h3>
+<div class="outline-text-3" id="text-5-2">
+<p>
+Once your virtual desktop appears in the browser:
+</p>
+
+<ol class="org-ol">
+<li><b>Open a Terminal:</b> Right-click anywhere on the desktop and select
+<i>Open Terminal Here</i>.</li>
+
+<li><b>Load MATLAB:</b> Type the following commands to prepare the environment:</li>
+</ol>
+
+<div class="org-src-container">
+<pre class="src src-bash">module purge
+module available | grep -i matlab  <span style="color: #8D8D84;"># </span><span style="color: #A0A1A7; font-style: italic;">shows installed versions</span>
+module load apps/matlab/r2025b
+</pre>
+</div>
+
+<ol class="org-ol">
+<li><b>Launch MATLAB:</b></li>
+</ol>
+
+<div class="org-src-container">
+<pre class="src src-bash">matlab
+</pre>
+</div>
+</div>
+</div>
+
+
+<div id="outline-container-org0cff41b" class="outline-3">
+<h3 id="org0cff41b"><span class="section-number-3">5.3.</span> Introducing MATLAB to the Cluster</h3>
+<div class="outline-text-3" id="text-5-3">
+<p>
+The first time you run MATLAB on TRUBA, it needs to detect its compute
+environment. This step only needs to be done once.
+</p>
+
+<ol class="org-ol">
+<li>In the MATLAB <b>Home</b> tab, click <b>Parallel</b> → <b>Discover Clusters…</b></li>
+<li>MATLAB will detect the compute node you were assigned (e.g., <code>orfoz34</code>).</li>
+<li>Follow the prompts to finish.</li>
+</ol>
+
+
+<div id="org74105e3" class="figure">
+<p><img src="images/matlab_discover_clusters.png" alt="matlab_discover_clusters.png" />
+</p>
+<p><span class="figure-number">Figure 2: </span>Discover Clusters window showing allocated compute node</p>
+</div>
+
+<div class="NOTE" id="orgf3b4734">
+<p>
+<b>What does this step do?</b> This simply tells MATLAB that it is running
+on a TRUBA compute node. It does <b>not</b> set up long-term job submission.
+That is covered in <a href="#orgdc3bbc7">8</a>.
+</p>
+
+</div>
+</div>
+</div>
+
+
+<div id="outline-container-org5256305" class="outline-3">
+<h3 id="org5256305"><span class="section-number-3">5.4.</span> Alternative: Launching MATLAB Without the GUI</h3>
+<div class="outline-text-3" id="text-5-4">
+<p>
+Once the one-time "Introducing MATLAB to the Cluster" step above has
+been completed, you do not need to launch the full graphical desktop
+every time. Two lighter alternatives are available:
+</p>
+
+<ul class="org-ul">
+<li><b>Interactive command-line mode</b> (still accepts typed commands):</li>
+</ul>
+
+<div class="org-src-container">
+<pre class="src src-bash">matlab -nodesktop
+</pre>
+</div>
+
+<ul class="org-ul">
+<li><b>Non-interactive batch mode</b> (runs a script and exits automatically):</li>
+</ul>
+
+<div class="org-src-container">
+<pre class="src src-bash">matlab -batch <span style="color: #008000;">"your_script_or_command"</span>
+</pre>
+</div>
+
+<div class="TIP" id="org01820b2">
+<p>
+<b>When to use which?</b> Use <code>-nodesktop</code> if you want to type commands
+interactively without the GUI overhead. Use <code>-batch</code> if you want to
+run a script fully automatically without any interaction. <code>-batch</code> is
+covered in detail in <a href="#org76c2042">7</a>.
+</p>
+
+</div>
+</div>
+</div>
+
+
+<div id="outline-container-orgd532fa8" class="outline-3">
+<h3 id="orgd532fa8"><span class="section-number-3">5.5.</span> The "Validate" Button</h3>
+<div class="outline-text-3" id="text-5-5">
+<p>
+If you open the <i>Cluster Profile Manager</i> (Home → Parallel → Cluster
+Profile Manager), you will see a <b>Validate</b> button.
+</p>
+
+<div class="IMPORTANT" id="orge419f01">
+<p>
+<b>Do not use the "Validate" button here.</b> On TRUBA, job execution is
+handled by the Slurm scheduler, not MATLAB's internal validator. The
+validation test will likely fail, but this <b>does not</b> mean your MATLAB
+is broken. As long as you can run commands, your setup is correct.
+</p>
+
+</div>
+</div>
+</div>
+
+
+<div id="outline-container-org5e029b0" class="outline-3">
+<h3 id="org5e029b0"><span class="section-number-3">5.6.</span> Connecting to the CUDA Cluster</h3>
+<div class="outline-text-3" id="text-5-6">
+<p>
+TRUBA has two main sections: <b>ARF</b> (standard CPU) and <b>CUDA</b> (GPU-focused).
+</p>
+
+<ul class="org-ul">
+<li><b>ARF Access:</b> <a href="https://172.16.6.20">https://172.16.6.20</a></li>
+<li><b>CUDA Access:</b> <a href="https://172.16.6.16">https://172.16.6.16</a> <i>(Requires special authorization)</i></li>
+</ul>
+
+<p>
+For CUDA access requirements see:
+<a href="https://docs.truba.gov.tr/1-kaynaklar/arf_acc/arf_acc_baglanti.html#arf-acc-baglanti">https://docs.truba.gov.tr/1-kaynaklar/arf_acc/arf_acc_baglanti.html#arf-acc-baglanti</a>
+</p>
+
+<p>
+Your files, settings, and MATLAB preferences are shared between both
+clusters, so no additional MATLAB configuration is needed when switching.
+</p>
+
+<ul class="org-ul">
+<li><b>Home directory:</b> <code>/arf/home/$USER</code></li>
+<li><b>MATLAB preferences:</b> <code>~/.matlab/R2025b/</code> (cluster profiles and
+settings are stored here; shared between ARF and CUDA)</li>
+</ul>
+</div>
+</div>
+
+
+<div id="outline-container-orgb7b7575" class="outline-3">
+<h3 id="orgb7b7575"><span class="section-number-3">5.7.</span> Next Steps</h3>
+<div class="outline-text-3" id="text-5-7">
+<p>
+Your MATLAB environment is now configured. To learn how to set job
+parameters and submit your first job to the cluster, see
+<a href="#orgdc3bbc7">8</a>.
+</p>
+</div>
+</div>
+</div>
+
+
+
+
+
+<div id="outline-container-org6287e44" class="outline-2">
+<h2 id="org6287e44"><span class="section-number-2">6.</span> Method B — Submit from Your Local MATLAB</h2>
+<div class="outline-text-2" id="text-6">
+<p>
+This method allows you to write and develop your code in MATLAB on your
+own computer and submit jobs directly to TRUBA without leaving the
+MATLAB environment. It requires a one-time setup.
+</p>
+
+<div class="IMPORTANT" id="org71331d1">
+<p>
+<b>License requirement:</b> Your local MATLAB installation must be covered
+by a valid <i>academic</i> license. If you use a commercial or trial license
+on your computer, remote job submission to TRUBA will be blocked. If
+you are unsure about your license type, type <code>license</code> in your MATLAB
+Command Window or contact your university IT department. If you do not
+have an academic license, use <a href="#org40fe958">5</a> instead.
+</p>
+
+</div>
+</div>
+
+
+<div id="outline-container-org2d1225d" class="outline-3">
+<h3 id="org2d1225d"><span class="section-number-3">6.1.</span> One-Time Setup</h3>
+<div class="outline-text-3" id="text-6-1">
+<p>
+This setup must be performed once per cluster (ARF or CUDA) and must
+be repeated if you install a new version of MATLAB locally.
+</p>
+</div>
+
+<div id="outline-container-org4243c1b" class="outline-4">
+<h4 id="org4243c1b"><span class="section-number-4">6.1.1.</span> Step 1: Verify Your User Path</h4>
+<div class="outline-text-4" id="text-6-1-1">
+<p>
+MATLAB needs a specific folder to store the TRUBA connection scripts.
+</p>
+
+<ul class="org-ul">
+<li>Open MATLAB on your computer.</li>
+<li>Type <code>userpath</code> in the Command Window.</li>
+<li>If it returns a folder path, that is where the plugin will be installed.</li>
+<li>If it returns empty, reset it:</li>
+</ul>
+
+<div class="org-src-container">
+<pre class="src src-matlab">userpath('reset')
+userpath
+</pre>
+</div>
+
+
+<div id="org3c43bc5" class="figure">
+<p><img src="images/local_userpath_output.png" alt="local_userpath_output.png" />
+</p>
+<p><span class="figure-number">Figure 3: </span>MATLAB userpath after reset</p>
+</div>
+
+<p>
+If the folder does not exist yet, create it manually:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-matlab">mkdir(fullfile(getenv('HOME'),'Documents','MATLAB'))
+userpath(fullfile(getenv('HOME'),'Documents','MATLAB'))
+savepath
+</pre>
+</div>
+</div>
+</div>
+
+
+<div id="outline-container-org527a418" class="outline-4">
+<h4 id="org527a418"><span class="section-number-4">6.1.2.</span> Step 2: Install the TRUBA Cluster Plugin</h4>
+<div class="outline-text-4" id="text-6-1-2">
+<ul class="org-ul">
+<li>Download the <b>TRUBA MATLAB Plugin (ZIP)</b> — link to be added???????????</li>
+<li>Extract the contents directly into the folder returned by <code>userpath</code>.</li>
+<li>In the MATLAB Command Window, run:</li>
+</ul>
+
+<div class="org-src-container">
+<pre class="src src-matlab">configCluster
+</pre>
+</div>
+
+<ul class="org-ul">
+<li>Follow the prompts: select the cluster (ARF or CUDA) and enter your
+<b>TRUBA username</b>.</li>
+</ul>
+
+<div class="NOTE" id="orgaf22b98">
+<p>
+<b>No password required yet.</b> You will be asked for your password only
+when you actually submit a job to the cluster.
+</p>
+
+</div>
+
+
+<div id="org44bbc4d" class="figure">
+<p><img src="images/configcluster_execution.png" alt="configcluster_execution.png" />
+</p>
+<p><span class="figure-number">Figure 4: </span>Running configCluster and selecting TRUBA ARF</p>
+</div>
+
+<p>
+After successful configuration, jobs submitted from your local MATLAB
+will run on the TRUBA cluster. You can verify the profile was created
+by going to Home → Parallel → Create and Manage Clusters.
+</p>
+
+
+<div id="orgff7a374" class="figure">
+<p><img src="images/cluster_profile_manager.png" alt="cluster_profile_manager.png" />
+</p>
+<p><span class="figure-number">Figure 5: </span>TRUBA ARF cluster profile visible in Cluster Profile Manager</p>
+</div>
+</div>
+</div>
+
+
+<div id="outline-container-org9e226a8" class="outline-4">
+<h4 id="org9e226a8"><span class="section-number-4">6.1.3.</span> Step 3: ARF and CUDA Cluster Profiles</h4>
+<div class="outline-text-4" id="text-6-1-3">
+<p>
+ARF and CUDA are separate Slurm systems and each requires its own
+cluster profile. If you have access to both, repeat the <code>configCluster</code>
+step and select the CUDA cluster when prompted.
+</p>
+
+<p>
+For CUDA access requirements see:
+<a href="https://docs.truba.gov.tr/1-kaynaklar/arf_acc/arf_acc_baglanti.html#arf-acc-baglanti">https://docs.truba.gov.tr/1-kaynaklar/arf_acc/arf_acc_baglanti.html#arf-acc-baglanti</a>
+</p>
+</div>
+</div>
+</div>
+
+
+<div id="outline-container-orge3cba0d" class="outline-3">
+<h3 id="orge3cba0d"><span class="section-number-3">6.2.</span> Switching Between Your Computer and the Cluster</h3>
+<div class="outline-text-3" id="text-6-2">
+<p>
+You can tell MATLAB where to run your work with a single command.
+This is useful for testing code locally before sending it to TRUBA.
+</p>
+
+<ul class="org-ul">
+<li><b>To work on TRUBA (default after setup):</b></li>
+</ul>
+
+<div class="org-src-container">
+<pre class="src src-matlab">c = parcluster;  % loads your default TRUBA profile
+</pre>
+</div>
+
+<ul class="org-ul">
+<li><b>To work on your local computer:</b></li>
+</ul>
+
+<div class="org-src-container">
+<pre class="src src-matlab">c = parcluster('Processes');  % uses your computer's own processors
+</pre>
+</div>
+
+<div class="TIP" id="org2631a5c">
+<p>
+<b>Tip:</b> Think of the <code>Processes</code> profile as your personal workspace and
+the TRUBA profile as the heavy-duty factory. Only send work to the
+factory when it is too big for your workspace!
+</p>
+
+</div>
+
+<p>
+If you do not see a <code>Processes</code> profile in your list, add it manually:
+</p>
+
+<ol class="org-ol">
+<li>Go to Home → Parallel → Create and Manage Clusters.</li>
+<li>Click <b>Add Cluster Profile</b> → <b>Processes</b>.</li>
+</ol>
+</div>
+</div>
+
+
+<div id="outline-container-org1b1813e" class="outline-3">
+<h3 id="org1b1813e"><span class="section-number-3">6.3.</span> Next Steps</h3>
+<div class="outline-text-3" id="text-6-3">
+<p>
+Your local MATLAB is now configured to submit jobs to TRUBA. To learn
+how to set job parameters and submit your first job to the cluster, see
+<a href="#orgdc3bbc7">8</a>.
+</p>
+</div>
+</div>
+</div>
+
+
+<div id="outline-container-org76c2042" class="outline-2">
+<h2 id="org76c2042"><span class="section-number-2">7.</span> Method C — Slurm Batch Script</h2>
+<div class="outline-text-2" id="text-7">
+<p>
+This method runs MATLAB entirely inside a Slurm allocation. You write
+a standard Slurm job script, and MATLAB creates a parallel pool using
+the CPUs already allocated by Slurm. No cluster profile or plugin is
+required.
+</p>
+
+<div class="NOTE" id="org1f5f1d7">
+<p>
+<b>When to use this method?</b> This is the most direct HPC approach and
+requires no local MATLAB installation or plugin setup. It is
+particularly suitable for users already familiar with Slurm job
+scripts.
+</p>
+
+</div>
+</div>
+
+
+
+<div id="outline-container-org6aad72f" class="outline-3">
+<h3 id="org6aad72f"><span class="section-number-3">7.1.</span> What You Need</h3>
+<div class="outline-text-3" id="text-7-1">
+<ul class="org-ul">
+<li>A MATLAB script saved on TRUBA under <code>/arf/scratch/$USER</code>.</li>
+<li>A Slurm job script (<code>.sh</code> file) that loads MATLAB and runs your code.</li>
+<li>Basic familiarity with Slurm partitions and wall time. See
+<a href="#orgdc3bbc7">8</a> for details.</li>
+</ul>
+</div>
+</div>
+
+
+<div id="outline-container-org6bd8caa" class="outline-3">
+<h3 id="org6bd8caa"><span class="section-number-3">7.2.</span> Step 1: Write Your MATLAB Script</h3>
+<div class="outline-text-3" id="text-7-2">
+<p>
+Save your MATLAB script under <code>/arf/scratch/$USER</code>. Your script should:
+</p>
+
+<ol class="org-ol">
+<li>Read the number of workers from the environment variable <code>NUM_WORKERS</code>
+(set automatically by the Slurm script).</li>
+<li>Create a parallel pool using those already-allocated CPUs.</li>
+<li>Run your computation.</li>
+<li>Clean up the pool at the end.</li>
+</ol>
+
+<div class="org-src-container">
+<pre class="src src-matlab">% your_script.m
+
+% Read number of workers passed in from Slurm
+n = str2double(getenv("NUM_WORKERS"));
+
+% Create a pool from the CPUs already allocated by Slurm.
+% This does NOT submit a new Slurm request — it simply uses
+% the resources Slurm has already given to this job.
+% (This is different from Method B where MATLAB itself talks to Slurm.)
+parpool('local', n);
+
+% --- Your computation goes here ---
+
+% Clean up
+delete(gcp('nocreate'));
+</pre>
+</div>
+
+<div class="NOTE" id="org942900d">
+<p>
+<b>Note:</b> <code>NUM_WORKERS</code> is set automatically by the Slurm script below.
+If you change the number of CPUs in the Slurm script, the worker count
+adjusts automatically — no need to edit your MATLAB code.
+</p>
+
+</div>
+</div>
+</div>
+
+
+
+
+<div id="outline-container-orgde252cb" class="outline-3">
+<h3 id="orgde252cb"><span class="section-number-3">7.3.</span> Step 2: Write Your Slurm Script</h3>
+<div class="outline-text-3" id="text-7-3">
+<p>
+Save the following as <code>submit_job.sh</code> in the same directory:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-bash"><span style="color: #8D8D84;">#</span><span style="color: #A0A1A7; font-style: italic;">!/bin/</span><span style="color: #0000FF;">bash</span>
+<span style="color: #8D8D84;">#</span><span style="color: #A0A1A7; font-style: italic;">SBATCH -J matlab-job             # job name</span>
+<span style="color: #8D8D84;">#</span><span style="color: #A0A1A7; font-style: italic;">SBATCH -A $USER                  # account name</span>
+<span style="color: #8D8D84;">#</span><span style="color: #A0A1A7; font-style: italic;">SBATCH -p orfoz                  # partition</span>
+<span style="color: #8D8D84;">#</span><span style="color: #A0A1A7; font-style: italic;">SBATCH -N 1                      # number of nodes</span>
+<span style="color: #8D8D84;">#</span><span style="color: #A0A1A7; font-style: italic;">SBATCH --ntasks=56               # orfoz requires 56xn cores per node</span>
+<span style="color: #8D8D84;">#</span><span style="color: #A0A1A7; font-style: italic;">SBATCH --cpus-per-task=1</span>
+<span style="color: #8D8D84;">#</span><span style="color: #A0A1A7; font-style: italic;">SBATCH -t 0-00:30                # wall time</span>
+<span style="color: #8D8D84;">#</span><span style="color: #A0A1A7; font-style: italic;">SBATCH -o matlab-job_%j.out      # standard output file</span>
+<span style="color: #8D8D84;">#</span><span style="color: #A0A1A7; font-style: italic;">SBATCH -e matlab-job_%j.err      # standard error file</span>
+
+module load apps/matlab/r2025b
+
+<span style="color: #8D8D84;"># </span><span style="color: #A0A1A7; font-style: italic;">One core runs the MATLAB client, the rest are workers</span>
+<span style="color: #006FE0;">export</span> <span style="color: #BA36A5;">NUM_WORKERS</span>=$(<span style="color: #FF1493;">(SLURM_NTASKS - 1</span>))  <span style="color: #8D8D84;"># </span><span style="color: #A0A1A7; font-style: italic;">= 55 workers</span>
+
+matlab -batch <span style="color: #008000;">"your_script"</span>
+</pre>
+</div>
+
+<div class="TIP" id="org37ee996">
+<p>
+<b>Note on core counts:</b> <code>orfoz</code> requires cores to be requested in
+multiples of 56 per node. With <code>--ntasks=56</code>, one core runs the MATLAB
+client and 55 become parallel workers. Partition-specific rules for
+other partitions are covered in <a href="#orgdc3bbc7">8</a>.
+</p>
+
+</div>
+</div>
+</div>
+
+
+
+<div id="outline-container-orgfadb761" class="outline-3">
+<h3 id="orgfadb761"><span class="section-number-3">7.4.</span> Step 3: Submit and Monitor Your Job</h3>
+<div class="outline-text-3" id="text-7-4">
+<p>
+Submit the job from the TRUBA login node:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-bash">sbatch submit_job.sh
+</pre>
+</div>
+
+<p>
+Check job status:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-bash">squeue -u $<span style="color: #BA36A5;">USER</span>
+</pre>
+</div>
+
+<p>
+After the job completes, inspect the output file:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-bash">cat matlab-job_&lt;jobid&gt;.out
+</pre>
+</div>
+</div>
+</div>
+
+
+<div id="outline-container-org76701bb" class="outline-3">
+<h3 id="org76701bb"><span class="section-number-3">7.5.</span> Next Steps</h3>
+<div class="outline-text-3" id="text-7-5">
+<p>
+For a deeper understanding of partition rules, memory, and resource
+selection — which apply to all three methods — see
+<a href="#orgdc3bbc7">8</a>.
+</p>
+</div>
+</div>
+</div>
+
+
+
+<div id="outline-container-orgdc3bbc7" class="outline-2">
+<h2 id="orgdc3bbc7"><span class="section-number-2">8.</span> Configuring and Submitting Jobs</h2>
+<div class="outline-text-2" id="text-8">
+<p>
+This section applies to <b>Method A</b> (Open OnDemand) and <b>Method B</b>
+(Local MATLAB). Method C (Slurm Batch Script) handles resource
+requests directly in the Slurm script — see <a href="#org76c2042">7</a> for that workflow.
+</p>
+
+<p>
+Before submitting jobs, it is recommended to have basic familiarity
+with Slurm concepts:
+</p>
+
+<ul class="org-ul">
+<li>Slurm job script fundamentals:
+<a href="https://docs.truba.gov.tr/2-temel_bilgiler/slurm-betik-ozellik.html">https://docs.truba.gov.tr/2-temel_bilgiler/slurm-betik-ozellik.html</a></li>
+<li>Overview of TRUBA partitions:
+<a href="https://docs.truba.gov.tr/2-temel_bilgiler/hesaplama_kumeleri.html">https://docs.truba.gov.tr/2-temel_bilgiler/hesaplama_kumeleri.html</a></li>
+</ul>
+</div>
+
+
+<div id="outline-container-orgda59baa" class="outline-3">
+<h3 id="orgda59baa"><span class="section-number-3">8.1.</span> The Three Things You Must Set</h3>
+<div class="outline-text-3" id="text-8-1">
+<p>
+Every job submission requires at least these three parameters:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-matlab">c = parcluster;
+
+c.AdditionalProperties.Partition = 'debug';   % which partition to use
+c.AdditionalProperties.NumNodes  = 1;         % number of nodes
+c.AdditionalProperties.WallTime  = '0-00:10'; % max runtime (D-HH:MM)
+</pre>
+</div>
+
+<ul class="org-ul">
+<li><b>Partition:</b> Determines which nodes your job runs on. For initial
+testing always use <code>debug</code>. For production jobs choose the partition
+that matches your workload type (CPU, memory, or GPU). See the
+partition reference tables below.</li>
+
+<li><b>NumNodes:</b> Always set this explicitly. If left unset, Slurm may
+distribute tasks across nodes in a way that violates per-node core
+policies.</li>
+
+<li><b>WallTime:</b> Required. Keep it short for tests (e.g. 10 minutes).
+Upper limits depend on the partition — you can check them with
+<code>scontrol show partition</code> on the TRUBA login node.</li>
+</ul>
+</div>
+</div>
+
+
+<div id="outline-container-orgae4a229" class="outline-3">
+<h3 id="orgae4a229"><span class="section-number-3">8.2.</span> Listing Available Partitions</h3>
+<div class="outline-text-3" id="text-8-2">
+<p>
+To get a quick list of available partitions from within MATLAB:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-matlab">c = parcluster;
+clusterPartitionNames(c)
+</pre>
+</div>
+
+<p>
+Example output:
+</p>
+
+<pre class="example" id="orgac1e082">
+{'akya-cuda'  }
+{'barbun'     }
+{'barbun-cuda'}
+{'debug'      }
+{'hamsi'      }
+{'orfoz'      }
+{'smp'        }
+</pre>
+
+<div class="NOTE" id="org0c18bfd">
+<p>
+<b>Note:</b> Online documentation may not always reflect the most current
+partition configuration. Use <code>clusterPartitionNames</code> for a quick list
+from within MATLAB, or <code>scontrol show partition</code> on the login node
+for full partition details including memory limits and maximum wall time.
+</p>
+
+</div>
+</div>
+</div>
+
+
+<div id="outline-container-org66bccbb" class="outline-3">
+<h3 id="org66bccbb"><span class="section-number-3">8.3.</span> Saving and Modifying Settings</h3>
+<div class="outline-text-3" id="text-8-3">
+<p>
+By default, changes to <code>AdditionalProperties</code> are not saved between
+MATLAB sessions. To make your settings persistent:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-matlab">c.saveProfile
+</pre>
+</div>
+
+<p>
+To modify a setting:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-matlab">c.AdditionalProperties.WallTime = '0-00:30';
+</pre>
+</div>
+
+<p>
+To unset a value and return to plugin defaults:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-matlab">c.AdditionalProperties.Partition = '';
+c.AdditionalProperties.NumNodes  = 0;
+c.AdditionalProperties.MemPerCPU = '';
+c.AdditionalProperties.RequireExclusiveNode = false;
+</pre>
+</div>
+
+<p>
+To view all current settings:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-matlab">c.AdditionalProperties
+</pre>
+</div>
+</div>
+</div>
+
+
+<div id="outline-container-org11b87b4" class="outline-3">
+<h3 id="org11b87b4"><span class="section-number-3">8.4.</span> Submitting a Job</h3>
+<div class="outline-text-3" id="text-8-4">
+<p>
+Use the <code>batch</code> command to submit a job to the cluster:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-matlab">j = batch(c, @your_function, 1, {}, ...
+    'Pool', 2, ...
+    'CurrentFolder', '.', ...
+    'AutoAddClientPath', false);
+</pre>
+</div>
+
+<p>
+Explanation of arguments:
+</p>
+
+<ul class="org-ul">
+<li><code>c</code> — the TRUBA cluster profile</li>
+<li><code>@your_function</code> — the function to run on the cluster</li>
+<li><code>1</code> — number of output arguments expected</li>
+<li><code>{}</code> — input arguments (empty in this example)</li>
+<li><code>'Pool', 2</code> — number of parallel workers</li>
+<li><code>'CurrentFolder', '.'</code> — working directory on the cluster</li>
+<li><code>'AutoAddClientPath', false</code> — prevents MATLAB from trying to add
+local paths to cluster workers (avoids unnecessary warnings)</li>
+</ul>
+
+<p>
+Once submitted, the job enters the Slurm queue and runs entirely on
+TRUBA. You may close MATLAB or your desktop session — the job
+continues running.
+</p>
+</div>
+</div>
+
+
+<div id="outline-container-orgd1ec132" class="outline-3">
+<h3 id="orgd1ec132"><span class="section-number-3">8.5.</span> The Pool+1 Rule</h3>
+<div class="outline-text-3" id="text-8-5">
+<div class="IMPORTANT" id="org7af3729">
+<p>
+<b>Total Slurm tasks = Pool size + 1</b>
+</p>
+
+<p>
+When you request a Pool of workers, MATLAB uses one additional task
+for job orchestration. A Pool of 2 therefore requests 3 Slurm tasks.
+This matters because some partitions enforce strict per-node core
+counts.
+</p>
+
+</div>
+
+<p>
+Example: to request exactly <b>56 cores</b> on <code>orfoz</code>, set <code>Pool = 55</code>:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-matlab">j = batch(c, @your_function, 1, {}, ...
+    'Pool', 55, ...
+    'CurrentFolder', '.', ...
+    'AutoAddClientPath', false);
+</pre>
+</div>
+
+<div class="NOTE" id="orgf75b072">
+<p>
+<b>Method C only:</b> In Slurm batch scripts, the Pool+1 rule does not
+apply — worker count is handled automatically by <code>SLURM_NTASKS - 1</code>.
+</p>
+
+</div>
+</div>
+</div>
+
+
+<div id="outline-container-orged93c38" class="outline-3">
+<h3 id="orged93c38"><span class="section-number-3">8.6.</span> Partition Reference: CPU Partitions</h3>
+<div class="outline-text-3" id="text-8-6">
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+
+
+<colgroup>
+<col  class="org-left" />
+
+<col  class="org-right" />
+
+<col  class="org-left" />
+
+<col  class="org-left" />
+</colgroup>
+<thead>
+<tr>
+<th scope="col" class="org-left">Partition</th>
+<th scope="col" class="org-right">Cores/Node</th>
+<th scope="col" class="org-left">Mem/CPU</th>
+<th scope="col" class="org-left">Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="org-left"><code>debug</code></td>
+<td class="org-right">flexible</td>
+<td class="org-left">—</td>
+<td class="org-left">For testing only</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>orfoz</code></td>
+<td class="org-right">112</td>
+<td class="org-left">~2000 MB</td>
+<td class="org-left">Must request 56×n cores</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>hamsi</code></td>
+<td class="org-right">56</td>
+<td class="org-left">~3400 MB</td>
+<td class="org-left">Must request 56×n cores</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>barbun</code></td>
+<td class="org-right">40</td>
+<td class="org-left">~8500 MB</td>
+<td class="org-left">Must request 40×n cores</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>smp</code></td>
+<td class="org-right">—</td>
+<td class="org-left">high</td>
+<td class="org-left">For memory-heavy jobs</td>
+</tr>
+</tbody>
+</table>
+</div>
+
+<div id="outline-container-org996c2e2" class="outline-4">
+<h4 id="org996c2e2"><span class="section-number-4">8.6.1.</span> Core Count Rules</h4>
+<div class="outline-text-4" id="text-8-6-1">
+<p>
+Some partitions enforce strict per-node core count policies. If
+violated, Slurm rejects the job with an error message.
+</p>
+
+<ul class="org-ul">
+<li><code>orfoz</code> — must request <b>56×n</b> cores per node (56 or 112)</li>
+<li><code>hamsi</code> — must request <b>56×n</b> cores per node</li>
+<li><code>barbun</code> — must request <b>40×n</b> cores per node</li>
+</ul>
+
+<div class="IMPORTANT" id="org8ff7ba8">
+<p>
+<b>Remember the Pool+1 rule.</b> To request 56 cores on <code>orfoz</code>,
+set <code>Pool = 55</code>.
+</p>
+
+</div>
+
+<p>
+Example rejected job message:
+</p>
+
+<pre class="example" id="org7d7fbc6">
+sbatch: error: Orfoz kuyruguna gonderilen islerde node basina
+56/112 cekirdek talep ediniz.
+</pre>
+</div>
+</div>
+</div>
+
+
+<div id="outline-container-org43960f3" class="outline-3">
+<h3 id="org43960f3"><span class="section-number-3">8.7.</span> Partition Reference: GPU Partitions</h3>
+<div class="outline-text-3" id="text-8-7">
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+
+
+<colgroup>
+<col  class="org-left" />
+
+<col  class="org-right" />
+
+<col  class="org-right" />
+
+<col  class="org-left" />
+
+<col  class="org-right" />
+</colgroup>
+<thead>
+<tr>
+<th scope="col" class="org-left">Partition</th>
+<th scope="col" class="org-right">Cores/Node</th>
+<th scope="col" class="org-right">GPUs/Node</th>
+<th scope="col" class="org-left">Mem/CPU</th>
+<th scope="col" class="org-right">CPUs per GPU</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="org-left"><code>barbun-cuda</code></td>
+<td class="org-right">40</td>
+<td class="org-right">2</td>
+<td class="org-left">~8500 MB</td>
+<td class="org-right">20</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>akya-cuda</code></td>
+<td class="org-right">40</td>
+<td class="org-right">4</td>
+<td class="org-left">~8500 MB</td>
+<td class="org-right">10</td>
+</tr>
+</tbody>
+</table>
+</div>
+
+<div id="outline-container-orge9efbb8" class="outline-4">
+<h4 id="orge9efbb8"><span class="section-number-4">8.7.1.</span> GPU Request Rules</h4>
+<div class="outline-text-4" id="text-8-7-1">
+<p>
+GPU partitions enforce both a mandatory GPU request and a strict
+CPU-to-GPU ratio.
+</p>
+
+<ul class="org-ul">
+<li><code>barbun-cuda</code>
+<ul class="org-ul">
+<li>GPU request is mandatory.</li>
+<li>Must request <b>20×n</b> CPU cores per GPU per node.</li>
+<li>A full node: 2 GPUs + 40 CPUs.</li>
+</ul></li>
+
+<li><code>akya-cuda</code>
+<ul class="org-ul">
+<li>GPU request is mandatory.</li>
+<li>Must request <b>10×n</b> CPU cores per GPU per node.</li>
+<li>A full node: 4 GPUs + 40 CPUs.</li>
+</ul></li>
+</ul>
+
+<p>
+To request GPUs from MATLAB:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-matlab">c.AdditionalProperties.GPUsPerNode = 2;
+</pre>
+</div>
+
+<div class="IMPORTANT" id="org6dd277c">
+<p>
+<b>If you previously set a node constraint</b> (e.g. <code>orfoz</code> for testing),
+clear it before submitting to GPU partitions:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-matlab">c.AdditionalProperties.Constraint = '';
+</pre>
+</div>
+
+<p>
+Otherwise Slurm may not find a matching node.
+</p>
+
+</div>
+
+<p>
+Example rejected job messages:
+</p>
+
+<pre class="example" id="org886c719">
+barbun-cuda kuyruguna sadece GPU talebi olan isler gonderilebilir.
+</pre>
+
+<pre class="example" id="orgb0b607f">
+sbatch: error: Too few CPUs requested for the number of GPUs.
+</pre>
+</div>
+</div>
+</div>
+
+
+<div id="outline-container-org05e3a8d" class="outline-3">
+<h3 id="org05e3a8d"><span class="section-number-3">8.8.</span> Memory Model</h3>
+<div class="outline-text-3" id="text-8-8">
+<p>
+On TRUBA, memory allocation scales with the number of requested CPU
+cores — you do not request memory directly. Requesting more cores
+gives you proportionally more memory. The memory figures are already
+shown in the partition tables above.
+</p>
+
+<div class="TIP" id="org52135cf">
+<p>
+<b>Memory-heavy jobs:</b> If your job needs more memory than it needs
+CPU cores, choose a partition with a higher memory-per-CPU ratio.
+<code>barbun</code> (~8500 MB/CPU) is often the best choice for memory-heavy
+workloads. For extreme memory requirements, consider <code>smp</code>.
+</p>
+
+</div>
+
+<div class="NOTE" id="orgbdaff96">
+<p>
+<b>Responsible usage:</b> Do not request excessive cores just to get
+more memory if the extra cores will remain idle. Choose the
+partition that gives you the right memory-per-CPU ratio instead.
+</p>
+
+</div>
+</div>
+</div>
+
+
+<div id="outline-container-orgbee7640" class="outline-3">
+<h3 id="orgbee7640"><span class="section-number-3">8.9.</span> Monitoring and Retrieving Results</h3>
+<div class="outline-text-3" id="text-8-9">
+</div>
+<div id="outline-container-org297be1f" class="outline-4">
+<h4 id="org297be1f"><span class="section-number-4">8.9.1.</span> While the Job is Running</h4>
+<div class="outline-text-4" id="text-8-9-1">
+<p>
+Check job state from MATLAB:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-matlab">j.State
+</pre>
+</div>
+
+<p>
+Possible states:
+</p>
+
+<ul class="org-ul">
+<li><code>queued</code> — waiting in the Slurm queue</li>
+<li><code>running</code> — currently executing</li>
+<li><code>finished</code> — completed successfully</li>
+<li><code>failed</code> — an error occurred</li>
+</ul>
+
+<p>
+To block MATLAB until the job finishes (useful for short test jobs):
+</p>
+
+<div class="org-src-container">
+<pre class="src src-matlab">wait(j)
+</pre>
+</div>
+
+<p>
+To check from the TRUBA login node:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-bash">squeue -u $<span style="color: #BA36A5;">USER</span>
+</pre>
+</div>
+
+<p>
+After completion:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-bash">sacct -j &lt;jobid&gt; --format=JobID,State,Elapsed,AllocCPUS,NodeList
+</pre>
+</div>
+</div>
+</div>
+
+
+<div id="outline-container-orgc835eac" class="outline-4">
+<h4 id="orgc835eac"><span class="section-number-4">8.9.2.</span> Coming Back to a Completed Job</h4>
+<div class="outline-text-4" id="text-8-9-2">
+<p>
+For longer jobs you will likely close MATLAB after submission and
+return later. To reconnect to your jobs:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-matlab">c = parcluster;
+c.Jobs          % lists all jobs associated with this profile
+</pre>
+</div>
+
+<p>
+<code>c.Jobs</code> returns a list of all jobs with their ID, state, and
+submission time. If you submitted multiple jobs, use this to
+identify which one you want:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-matlab">% Select by position (most recent job)
+j = c.Jobs(end);
+
+% Or select by ID if you noted it at submission time
+j = c.findJob('ID', 4);
+</pre>
+</div>
+
+<div class="TIP" id="org2f10452">
+<p>
+<b>Tip:</b> Note down the job ID immediately after submission:
+</p>
+<div class="org-src-container">
+<pre class="src src-matlab">j.ID
+</pre>
+</div>
+<p>
+This makes it easy to find the right job later, especially if
+you submitted multiple jobs.
+</p>
+
+</div>
+</div>
+</div>
+
+
+<div id="outline-container-org7c70a8c" class="outline-4">
+<h4 id="org7c70a8c"><span class="section-number-4">8.9.3.</span> Retrieving Results</h4>
+<div class="outline-text-4" id="text-8-9-3">
+</div>
+<ol class="org-ol">
+<li><a id="org81826d7"></a>Function output (fetchOutputs)<br />
+<div class="outline-text-5" id="text-8-9-3-1">
+<p>
+If your job was submitted as a function that returns values,
+retrieve them with:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-matlab">out = fetchOutputs(j);
+out{1}    % outputs are always returned as a cell array
+</pre>
+</div>
+
+<p>
+This is the most convenient method for test jobs and functions
+that return small results.
+</p>
+</div>
+</li>
+
+<li><a id="orgb1cad7f"></a>File output<br />
+<div class="outline-text-5" id="text-8-9-3-2">
+<p>
+For production jobs, your MATLAB code will typically write results
+directly to disk using <code>save()</code> or similar. These files are written
+to the <code>CurrentFolder</code> you specified in the <code>batch</code> call.
+</p>
+
+<div class="IMPORTANT" id="org517aaa3">
+<p>
+<b>Where are the files?</b>
+</p>
+<ul class="org-ul">
+<li><b>Method A (Open OnDemand):</b> Files are written on the cluster under
+the <code>CurrentFolder</code> you specified — typically <code>/arf/scratch/$USER</code>.
+They are accessible directly from the TRUBA filesystem.</li>
+<li><b>Method B (Local MATLAB):</b> Files are written on the <b>cluster</b>, not
+on your local machine. You need to either SSH into TRUBA to access
+them, or copy them to your local machine using <code>scp</code> or <code>sftp</code>.</li>
+</ul>
+
+</div>
+</div>
+</li>
+
+<li><a id="org2cd033a"></a>Viewing printed output<br />
+<div class="outline-text-5" id="text-8-9-3-3">
+<p>
+To see everything MATLAB printed to the command window during
+execution:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-matlab">diary(j)
+</pre>
+</div>
+</div>
+</li>
+</ol>
+</div>
+
+
+<div id="outline-container-org09ec5f8" class="outline-4">
+<h4 id="org09ec5f8"><span class="section-number-4">8.9.4.</span> If the Job Failed</h4>
+<div class="outline-text-4" id="text-8-9-4">
+<div class="org-src-container">
+<pre class="src src-matlab">j.State            % confirm it is 'failed'
+j.Tasks(1).Error   % view the error message
+diary(j)           % view all printed output including errors
+</pre>
+</div>
+
+<p>
+If you need to report the issue to TRUBA support, retrieve the
+Slurm job ID:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-matlab">j.getTaskSchedulerIDs()
+</pre>
+</div>
+</div>
+</div>
+
+
+<div id="outline-container-org47e6760" class="outline-4">
+<h4 id="org47e6760"><span class="section-number-4">8.9.5.</span> Cleaning Up</h4>
+<div class="outline-text-4" id="text-8-9-5">
+<p>
+To delete a single completed job and its local metadata:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-matlab">delete(j)
+</pre>
+</div>
+
+<p>
+To delete all jobs associated with the profile:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-matlab">c = parcluster;
+delete(c.Jobs)
+</pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+
+
+
+
+<div id="outline-container-org6060117" class="outline-2">
+<h2 id="org6060117"><span class="section-number-2">9.</span> Advanced: Interactive parpool from Desktop</h2>
+<div class="outline-text-2" id="text-9">
+<p>
+This section describes how to launch a parallel pool on TRUBA directly
+from MATLAB running on your personal computer. Once the pool is
+connected, your <code>parfor</code> loops run on cluster workers transparently
+as if they were running locally.
+</p>
+
+<div class="NOTE" id="org005097a">
+<p>
+<b>Requirements:</b> VPN must be active and TCP port 27370 must be open
+for inbound traffic on your machine.
+</p>
+
+</div>
+</div>
+
+
+<div id="outline-container-orgcfa37b6" class="outline-3">
+<h3 id="orgcfa37b6"><span class="section-number-3">9.1.</span> Setting Up the Connection</h3>
+<div class="outline-text-3" id="text-9-1">
+<p>
+Before starting the pool, run the following command to advertise
+your VPN IP address to the TRUBA worker nodes:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-matlab">sethostname
+</pre>
+</div>
+
+<p>
+Expected output:
+</p>
+
+<pre class="example" id="org34ec326">
+Found private IP address.  Setting hostname: 10.x.x.x
+</pre>
+
+<p>
+Run this command each time you restart MATLAB.
+</p>
+
+<p>
+If your firewall blocks communication, you may see:
+</p>
+
+<pre class="example" id="orgb718aca">
+Check whether a firewall is blocking communication between the
+worker machines and the MATLAB client machine.
+</pre>
+</div>
+</div>
+
+
+<div id="outline-container-orgc209a10" class="outline-3">
+<h3 id="orgc209a10"><span class="section-number-3">9.2.</span> Starting a Parallel Pool on TRUBA</h3>
+<div class="outline-text-3" id="text-9-2">
+<p>
+Configure the cluster profile as usual (see <a href="#orgdc3bbc7">8</a> for partition rules and memory guidance), then
+start the pool:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-matlab">c = parcluster;
+
+c.AdditionalProperties.Partition = 'orfoz';
+c.AdditionalProperties.NumNodes  = 1;
+c.AdditionalProperties.WallTime  = '0-00:30';
+
+pool = parpool(c, 56);
+</pre>
+</div>
+
+<div class="NOTE" id="orgd61be7c">
+<p>
+<code>parpool(c, 56)</code> internally submits a Slurm job requesting 56 workers.
+All TRUBA partition constraints apply — for example, <code>orfoz</code> requires
+56×n cores per node. The pool remains active and holds cluster
+resources until you explicitly delete it.
+</p>
+
+</div>
+
+<p>
+This startup phase can take from tens of seconds to several minutes
+while MATLAB submits the Slurm job, starts worker processes, checks
+licenses, and establishes TCP connections.
+</p>
+</div>
+</div>
+
+
+<div id="outline-container-org23f4bc0" class="outline-3">
+<h3 id="org23f4bc0"><span class="section-number-3">9.3.</span> Running Code Interactively</h3>
+<div class="outline-text-3" id="text-9-3">
+<p>
+Once the pool is connected, your <code>parfor</code> loops run on cluster workers
+transparently. A quick test to verify the pool is working:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-matlab">tic;
+parfor i = 1:56
+    pause(1);
+end
+toc
+</pre>
+</div>
+
+<p>
+With 56 workers each iteration runs simultaneously, so the total
+elapsed time should be close to 1 second instead of 56 seconds.
+This confirms the pool is active and workers are being utilized.
+</p>
+</div>
+</div>
+
+
+
+<div id="outline-container-orga4fdbf4" class="outline-3">
+<h3 id="orga4fdbf4"><span class="section-number-3">9.4.</span> Monitoring the Pool</h3>
+<div class="outline-text-3" id="text-9-4">
+<p>
+To view active pools and jobs, open the Job Monitor:
+</p>
+
+<p>
+Parallel → Monitor Jobs
+</p>
+
+
+<div id="orgac8cee2" class="figure">
+<p><img src="images/open_job_monitor.png" alt="open_job_monitor.png" />
+</p>
+<p><span class="figure-number">Figure 6: </span>Opening the Job Monitor from the MATLAB Parallel menu.</p>
+</div>
+
+
+<div id="orgda9342c" class="figure">
+<p><img src="images/job_monitor_window.png" alt="job_monitor_window.png" />
+</p>
+<p><span class="figure-number">Figure 7: </span>MATLAB Job Monitor showing running and finished jobs.</p>
+</div>
+
+<div class="NOTE" id="org646c9f3">
+<p>
+When a pool is active the Job Monitor shows <i>Description: Interactive
+pool</i> and <i>State: running</i>. This means workers are allocated and
+ready — it does <b>not</b> necessarily mean a <code>parfor</code> loop is currently
+executing. As long as the pool remains open, cluster resources stay
+allocated.
+</p>
+
+</div>
+</div>
+</div>
+
+
+<div id="outline-container-org67522ee" class="outline-3">
+<h3 id="org67522ee"><span class="section-number-3">9.5.</span> Closing the Pool</h3>
+<div class="outline-text-3" id="text-9-5">
+<p>
+Always delete the pool when you are finished:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-matlab">delete(gcp('nocreate'))
+</pre>
+</div>
+
+<p>
+Idle pools may be terminated automatically after approximately
+30 minutes of inactivity, but do not rely on this.
+</p>
+</div>
+</div>
+
+
+<div id="outline-container-org5b77576" class="outline-3">
+<h3 id="org5b77576"><span class="section-number-3">9.6.</span> Troubleshooting</h3>
+<div class="outline-text-3" id="text-9-6">
+<p>
+If the pool fails to connect, for example after reconnecting to VPN,
+you can try:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-matlab">fixConnection
+</pre>
+</div>
+</div>
+</div>
+
+
+<div id="outline-container-org1b49727" class="outline-3">
+<h3 id="org1b49727"><span class="section-number-3">9.7.</span> Next Steps</h3>
+</div>
+</div>
+
+
+<div id="outline-container-org9e26d97" class="outline-2">
+<h2 id="org9e26d97"><span class="section-number-2">10.</span> Helper Functions</h2>
+<div class="outline-text-2" id="text-10">
+<p>
+TRUBA provides several helper functions that simplify interaction
+with Slurm and cluster resources from within MATLAB. All functions
+that query cluster properties require an active cluster profile
+object — run them from MATLAB after calling <code>c = parcluster</code>.
+</p>
+
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+
+
+<colgroup>
+<col  class="org-left" />
+
+<col  class="org-left" />
+
+<col  class="org-left" />
+</colgroup>
+<thead>
+<tr>
+<th scope="col" class="org-left">Function</th>
+<th scope="col" class="org-left">Description</th>
+<th scope="col" class="org-left">Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="org-left"><code>clusterPartitionNames</code></td>
+<td class="org-left">Lists available Slurm partitions</td>
+<td class="org-left">Verify before setting partition</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>clusterFeatures</code></td>
+<td class="org-left">Lists cluster features and node constraints</td>
+<td class="org-left">Useful for understanding partition rules</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>clusterGpuCards</code></td>
+<td class="org-left">Lists available GPU models on TRUBA</td>
+<td class="org-left">Use before requesting GPU resources</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>fixConnection</code></td>
+<td class="org-left">Reestablishes cluster connection</td>
+<td class="org-left">Applicable only for interactive parpool</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>seff</code></td>
+<td class="org-left">Displays Slurm efficiency stats for a job</td>
+<td class="org-left">Use after job completes</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>willRun</code></td>
+<td class="org-left">Explains why a job is queued</td>
+<td class="org-left">Use while job is waiting</td>
+</tr>
+</tbody>
+</table>
+</div>
+
+
+<div id="outline-container-orgd145ee4" class="outline-3">
+<h3 id="orgd145ee4"><span class="section-number-3">10.1.</span> Usage</h3>
+<div class="outline-text-3" id="text-10-1">
+<div class="org-src-container">
+<pre class="src src-matlab">% Cluster query functions — require cluster profile object
+c = parcluster;
+clusterPartitionNames(c)
+clusterFeatures(c)
+clusterGpuCards(c)
+
+% Job functions — require MATLAB job object
+% j is returned by batch(), or retrieved via c.Jobs
+seff(j)      % after job completes
+willRun(j)   % while job is queued
+</pre>
+</div>
+</div>
+</div>
+
+
+<div id="outline-container-org1df1b68" class="outline-3">
+<h3 id="org1df1b68"><span class="section-number-3">10.2.</span> Interpreting seff Output</h3>
+<div class="outline-text-3" id="text-10-2">
+<p>
+<code>seff(j)</code> returns a summary of how efficiently your job used the
+resources it was allocated. Example output:
+</p>
+
+<pre class="example" id="orga850bb3">
+ID: 5335910
+Cluster: arf
+User/Group: username/username
+State: COMPLETED (exit code 0)
+Nodes: 1
+Cores per node: 56
+CPU Utilized: 00:22:41
+CPU Efficiency: 22.50% of 01:40:48 core-walltime
+Job Wall-clock time: 00:01:48
+Memory Utilized: 50.29 GB
+Memory Efficiency: 45.98% of 109.38 GB
+</pre>
+
+<p>
+The two most useful numbers for tuning future job submissions are:
+</p>
+
+<ul class="org-ul">
+<li><b>CPU Efficiency:</b> 22.50% means workers were idle for most of the
+job. Either the workload was too small to keep 56 workers busy, or
+there was a load imbalance between iterations. Consider reducing
+the pool size or increasing the workload per iteration.</li>
+
+<li><b>Memory Efficiency:</b> 45.98% means roughly half the allocated memory
+went unused. Since memory on TRUBA scales with the number of
+requested cores, you may be able to request fewer cores on the
+next run and still have sufficient memory.</li>
+</ul>
+
+<div class="TIP" id="orgf49c3d3">
+<p>
+Run <code>seff</code> after every job while you are still tuning your resource
+requests. Once CPU and memory efficiency are consistently high you
+have found the right configuration for your workload.
+</p>
+
+</div>
+</div>
+</div>
+</div>
+
+
+<div id="outline-container-org3cbbead" class="outline-2">
+<h2 id="org3cbbead"><span class="section-number-2">11.</span> Troubleshooting</h2>
+<div class="outline-text-2" id="text-11">
+</div>
+<div id="outline-container-org599c302" class="outline-3">
+<h3 id="org599c302"><span class="section-number-3">11.1.</span> Job Failed: Retrieving Debug Logs</h3>
+<div class="outline-text-3" id="text-11-1">
+<p>
+If a batch job fails, use <code>getDebugLog</code> to retrieve detailed error
+messages from the MATLAB workers on TRUBA.
+</p>
+
+<p>
+For pool jobs:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-matlab">c.getDebugLog(job)
+</pre>
+</div>
+
+<p>
+For independent jobs (multiple tasks):
+</p>
+
+<div class="org-src-container">
+<pre class="src src-matlab">c.getDebugLog(job.Tasks)
+</pre>
+</div>
+</div>
+</div>
+
+
+<div id="outline-container-orgc2293e6" class="outline-3">
+<h3 id="orgc2293e6"><span class="section-number-3">11.2.</span> Retrieving the Slurm Job ID</h3>
+<div class="outline-text-3" id="text-11-2">
+<p>
+If you need to report a problem to TRUBA support, they may ask for
+the Slurm job ID. Retrieve it with:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-matlab">job.getTaskSchedulerIDs()
+</pre>
+</div>
+
+<p>
+Example output:
+</p>
+
+<pre class="example" id="orgb21c3c3">
+ans =
+    25539
+</pre>
+
+<p>
+This corresponds to the Slurm job ID visible via <code>squeue</code> or <code>sacct</code>
+on the TRUBA login node.
+</p>
+</div>
+</div>
+
+
+<div id="outline-container-org29305f3" class="outline-3">
+<h3 id="org29305f3"><span class="section-number-3">11.3.</span> Licensing Issues</h3>
+<div class="outline-text-3" id="text-11-3">
+<p>
+MATLAB jobs on TRUBA require:
+</p>
+
+<ul class="org-ul">
+<li>A valid <b>academic license</b> on your local MATLAB installation</li>
+<li>The <b>Parallel Computing Toolbox</b> for <code>parpool</code> and <code>batch</code> with <code>Pool</code></li>
+</ul>
+
+<p>
+TRUBA's network license is already configured — you do not need to
+set up anything on the cluster side.
+</p>
+</div>
+
+<div id="outline-container-org8ab62e3" class="outline-4">
+<h4 id="org8ab62e3"><span class="section-number-4">11.3.1.</span> Checking Your Local License</h4>
+<div class="outline-text-4" id="text-11-3-1">
+<p>
+To verify whether your local MATLAB installation has the Parallel
+Computing Toolbox:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-matlab">license('test', 'Distrib_Computing_Toolbox')
+% Returns 1 if available, 0 if not
+</pre>
+</div>
+
+<p>
+To see all toolboxes currently checked out in your session:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-matlab">license('inuse')
+</pre>
+</div>
+
+<p>
+To see all toolboxes installed with your MATLAB:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-matlab">ver
+</pre>
+</div>
+
+<div class="NOTE" id="org7fcb25a">
+<p>
+Academic licenses are required for cluster submission via the plugin
+(Method B). If you are unsure whether your institutional license
+covers the Parallel Computing Toolbox, check with your institution's
+MATLAB license administrator.
+</p>
+
+</div>
+</div>
+</div>
+
+<div id="outline-container-org668dc31" class="outline-4">
+<h4 id="org668dc31"><span class="section-number-4">11.3.2.</span> Symptoms of a Licensing Problem</h4>
+<div class="outline-text-4" id="text-11-3-2">
+<ul class="org-ul">
+<li>Job fails immediately after submission</li>
+<li>Workers cannot start</li>
+<li><code>parpool</code> hangs or reports license checkout failures</li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-org1270e41" class="outline-4">
+<h4 id="org1270e41"><span class="section-number-4">11.3.3.</span> If You Suspect a TRUBA-Side License Issue</h4>
+<div class="outline-text-4" id="text-11-3-3">
+<p>
+Contact TRUBA support and include:
+</p>
+
+<ul class="org-ul">
+<li>The Slurm job ID (<code>job.getTaskSchedulerIDs()</code>)</li>
+<li>The debug log (<code>c.getDebugLog(job)</code>)</li>
+<li>The exact error message from <code>j.Tasks(1).Error</code></li>
+</ul>
+</div>
+</div>
+</div>
+</div>
+
+
+<div id="outline-container-org6439944" class="outline-2">
+<h2 id="org6439944"><span class="section-number-2">12.</span> Quick Reference</h2>
+<div class="outline-text-2" id="text-12">
+</div>
+<div id="outline-container-org5c783c4" class="outline-3">
+<h3 id="org5c783c4"><span class="section-number-3">12.1.</span> Essential Settings</h3>
+<div class="outline-text-3" id="text-12-1">
+<div class="org-src-container">
+<pre class="src src-matlab">c = parcluster;
+
+c.AdditionalProperties.Partition = 'debug';   % partition name
+c.AdditionalProperties.NumNodes  = 1;         % number of nodes
+c.AdditionalProperties.WallTime  = '0-00:10'; % max runtime (D-HH:MM)
+</pre>
+</div>
+
+<p>
+Always start with <code>debug</code> for testing. Change partition for
+production jobs.
+</p>
+</div>
+</div>
+
+
+<div id="outline-container-orgcb203e9" class="outline-3">
+<h3 id="orgcb203e9"><span class="section-number-3">12.2.</span> Submitting a Job</h3>
+<div class="outline-text-3" id="text-12-2">
+<div class="org-src-container">
+<pre class="src src-matlab">j = batch(c, @your_function, 1, {}, ...
+    'Pool', N, ...
+    'CurrentFolder', '.', ...
+    'AutoAddClientPath', false);
+</pre>
+</div>
+</div>
+</div>
+
+
+<div id="outline-container-orga2aa8eb" class="outline-3">
+<h3 id="orga2aa8eb"><span class="section-number-3">12.3.</span> The Pool+1 Rule</h3>
+<div class="outline-text-3" id="text-12-3">
+<pre class="example" id="orgac1dc9e">
+Total Slurm tasks = Pool + 1
+</pre>
+
+<p>
+MATLAB uses one extra task for orchestration. On partitions with
+strict core count policies this matters:
+</p>
+
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+
+
+<colgroup>
+<col  class="org-left" />
+
+<col  class="org-right" />
+
+<col  class="org-right" />
+</colgroup>
+<thead>
+<tr>
+<th scope="col" class="org-left">Partition</th>
+<th scope="col" class="org-right">Cores/Node</th>
+<th scope="col" class="org-right">Set Pool to</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="org-left"><code>orfoz</code></td>
+<td class="org-right">56</td>
+<td class="org-right">55</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>orfoz</code></td>
+<td class="org-right">112</td>
+<td class="org-right">111</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>hamsi</code></td>
+<td class="org-right">56</td>
+<td class="org-right">55</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>barbun</code></td>
+<td class="org-right">40</td>
+<td class="org-right">39</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>barbun-cuda</code></td>
+<td class="org-right">40</td>
+<td class="org-right">39</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+
+
+<div id="outline-container-org2665c95" class="outline-3">
+<h3 id="org2665c95"><span class="section-number-3">12.4.</span> Monitoring and Retrieving Results</h3>
+<div class="outline-text-3" id="text-12-4">
+<div class="org-src-container">
+<pre class="src src-matlab">j.State              % queued / running / finished / failed
+wait(j)              % block until job completes
+diary(j)             % view printed output from workers
+out = fetchOutputs(j); out{1}   % retrieve function return value
+j.Tasks(1).Error     % view error if job failed
+c.getDebugLog(j)     % detailed worker error log
+</pre>
+</div>
+
+<p>
+From the login node:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-bash">squeue -u $<span style="color: #BA36A5;">USER</span>
+sacct -j &lt;jobid&gt; --format=JobID,State,Elapsed,AllocCPUS,NodeList
+</pre>
+</div>
+</div>
+</div>
+
+
+<div id="outline-container-orgaabb07d" class="outline-3">
+<h3 id="orgaabb07d"><span class="section-number-3">12.5.</span> Coming Back to a Completed Job</h3>
+<div class="outline-text-3" id="text-12-5">
+<div class="org-src-container">
+<pre class="src src-matlab">c = parcluster;
+c.Jobs        % list all jobs
+j = c.Jobs(end);          % most recent job
+j = c.findJob('ID', 4);   % specific job by ID
+</pre>
+</div>
+</div>
+</div>
+
+
+<div id="outline-container-orgfca3568" class="outline-3">
+<h3 id="orgfca3568"><span class="section-number-3">12.6.</span> Saving Settings</h3>
+<div class="outline-text-3" id="text-12-6">
+<div class="org-src-container">
+<pre class="src src-matlab">c.saveProfile             % persist settings between sessions
+c.AdditionalProperties    % view all current settings
+</pre>
+</div>
+</div>
+</div>
+
+
+<div id="outline-container-orgf58b69c" class="outline-3">
+<h3 id="orgf58b69c"><span class="section-number-3">12.7.</span> Example: CPU Job on <code>orfoz</code> (56-core half-node)</h3>
+<div class="outline-text-3" id="text-12-7">
+<div class="org-src-container">
+<pre class="src src-matlab">c = parcluster;
+c.AdditionalProperties.Partition = 'orfoz';
+c.AdditionalProperties.NumNodes  = 1;
+c.AdditionalProperties.WallTime  = '0-00:10';
+
+j = batch(c, @pwd, 1, {}, ...
+    'Pool', 55, ...
+    'CurrentFolder', '.', ...
+    'AutoAddClientPath', false);
+
+wait(j);
+out = fetchOutputs(j);
+out{1}    % should return your working directory on TRUBA
+</pre>
+</div>
+</div>
+</div>
+
+
+<div id="outline-container-org9448a7d" class="outline-3">
+<h3 id="org9448a7d"><span class="section-number-3">12.8.</span> Example: GPU Job on <code>barbun-cuda</code> (2 GPUs, 40 CPUs)</h3>
+<div class="outline-text-3" id="text-12-8">
+<div class="org-src-container">
+<pre class="src src-matlab">c = parcluster;
+c.AdditionalProperties.Partition  = 'barbun-cuda';
+c.AdditionalProperties.NumNodes   = 1;
+c.AdditionalProperties.WallTime   = '0-00:10';
+c.AdditionalProperties.GPUsPerNode = 2;
+
+j = batch(c, @gpuDeviceCount, 1, {}, ...
+    'Pool', 39, ...
+    'CurrentFolder', '.', ...
+    'AutoAddClientPath', false);
+
+wait(j);
+out = fetchOutputs(j);
+out{1}    % should return 2 (number of GPUs visible to worker)
+</pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div id="postamble" class="status">
+<p class="author">Author: sbilmis</p>
+<p class="date">Created: 2026-02-26 Thu 17:30</p>
+<p class="validation"><a href="https://validator.w3.org/check?uri=referer">Validate</a></p>
+</div>
+</body>
+</html>
